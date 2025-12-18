@@ -2,4 +2,30 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    
+    <!-- Primary colors -->
+    <color name="primary">#2196F3</color>
+    <color name="primary_dark">#1976D2</color>
+    <color name="primary_light">#BBDEFB</color>
+    <color name="accent">#FF9800</color>
+    
+    <!-- Background colors -->
+    <color name="background_light">#F5F5F5</color>
+    <color name="card_background">#FFFFFF</color>
+    <color name="board_background">#DEB887</color>
+    
+    <!-- Text colors -->
+    <color name="text_primary">#212121</color>
+    <color name="text_secondary">#757575</color>
+    <color name="text_hint">#BDBDBD</color>
+    
+    <!-- Game colors -->
+    <color name="gomoku_board">#DEB887</color>
+    <color name="go_board">#DCB35C</color>
+    <color name="xiangqi_board">#F4E4C1</color>
+    
+    <!-- Button colors -->
+    <color name="button_primary">#4CAF50</color>
+    <color name="button_secondary">#2196F3</color>
+    <color name="button_warning">#FF9800</color>
 </resources>
