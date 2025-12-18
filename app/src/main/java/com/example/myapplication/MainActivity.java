@@ -1,0 +1,211 @@
+package com.example.myapplication;
+
+import android.Manifest;
+import android.bluetooth.BluetoothDevice;
+import android.content.pm.PackageManager;
+import android.os.*;
+import android.view.View;
+import android.widget.*;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.myapplication.BluetoothHelper;
+import com.example.myapplication.GomokuEngine;
+import com.example.myapplication.BoardView;
+
+import org.json.JSONObject;
+import java.util.*;
+
+public class MainActivity extends AppCompatActivity implements BluetoothHelper.Listener {
+
+    private BluetoothHelper bt;
+    private ArrayAdapter<String> deviceAdapter;
+    private Map<String, BluetoothDevice> deviceMap = new HashMap<>();
+    private GomokuEngine engine = new GomokuEngine(15);
+    private int myColor = 1; // 我方颜色，先手黑
+    private int turn = 1;    // 当前轮到 color
+    private BoardView boardView;
+
+    private final String[] perms = new String[]{
+            Manifest.permission.BLUETOOTH_SCAN,
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.ACCESS_FINE_LOCATION
+    };
+    private final ActivityResultContracts.RequestMultiplePermissions permsContract = new ActivityResultContracts.RequestMultiplePermissions();
+    private final androidx.activity.result.ActivityResultLauncher<String[]> permLauncher =
+            registerForActivityResult(permsContract, r -> startDiscovery());
+
+    @Override protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        bt = new BluetoothHelper(this, this);
+
+        boardView = findViewById(R.id.boardView);
+        boardView.bindEngine(engine);
+        boardView.setOnPlaceListener((r, c) -> tryPlace(r, c));
+
+        ListView list = findViewById(R.id.listDevices);
+        deviceAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1);
+        list.setAdapter(deviceAdapter);
+        list.setOnItemClickListener((p, v, pos, id) -> {
+            String key = deviceAdapter.getItem(pos);
+            BluetoothDevice d = deviceMap.get(key);
+            if (d != null) {
+                bt.connectTo(d);
+            }
+        });
+
+        findViewById(R.id.btnDiscover).setOnClickListener(v -> checkPermAndDiscover());
+        findViewById(R.id.btnHost).setOnClickListener(v -> bt.startServerAccept());
+        findViewById(R.id.btnUndo).setOnClickListener(v -> sendUndoRequest());
+    }
+
+    private void checkPermAndDiscover() {
+        List<String> need = new ArrayList<>();
+        for (String p : perms) if (checkSelfPermission(p) != PackageManager.PERMISSION_GRANTED) need.add(p);
+        if (!need.isEmpty()) permLauncher.launch(need.toArray(new String[0]));
+        else startDiscovery();
+    }
+
+    private void startDiscovery() {
+        deviceAdapter.clear();
+        deviceMap.clear();
+        bt.startDiscovery();
+        Toast.makeText(this, "开始扫描...", Toast.LENGTH_SHORT).show();
+    }
+
+    /* ========== 游戏交互 ========== */
+    private void tryPlace(int r, int c) {
+        if (turn != myColor) { Toast.makeText(this, "等待对手", Toast.LENGTH_SHORT).show(); return; }
+        if (!engine.place(r, c, myColor)) return;
+        boardView.invalidate();
+        sendMove(r, c, myColor);
+        if (engine.checkWin(r, c)) {
+            Toast.makeText(this, "你赢了!", Toast.LENGTH_LONG).show();
+        } else {
+            turn = other(myColor);
+        }
+    }
+
+    private void onRemoteMove(int r, int c, int color) {
+        engine.place(r, c, color);
+        boardView.invalidate();
+        if (engine.checkWin(r, c)) {
+            Toast.makeText(this, "你输了", Toast.LENGTH_LONG).show();
+        } else {
+            turn = myColor;
+        }
+    }
+
+    private void sendMove(int r, int c, int color) {
+        try {
+            JSONObject o = new JSONObject();
+            o.put("type", "move"); o.put("r", r); o.put("c", c); o.put("color", color);
+            bt.sendLine(o.toString());
+        } catch (Exception e) { e.printStackTrace(); }
+    }
+
+    private int other(int c) { return c == 1 ? 2 : 1; }
+
+    private void sendChallenge() {
+        try {
+            JSONObject o = new JSONObject(); o.put("type", "challenge"); o.put("from", "Player");
+            bt.sendLine(o.toString());
+        } catch (Exception ignored) {}
+    }
+
+    private void sendUndoRequest() {
+        try {
+            JSONObject o = new JSONObject(); o.put("type", "undo_request");
+            bt.sendLine(o.toString());
+        } catch (Exception ignored) {}
+    }
+
+    /* ========== Bluetooth 回调实现 ========== */
+    @Override public void onDeviceFound(BluetoothDevice device) {
+        String key = device.getName() + " (" + device.getAddress() + ")";
+        if (!deviceMap.containsKey(key)) {
+            deviceMap.put(key, device);
+            deviceAdapter.add(key);
+            deviceAdapter.notifyDataSetChanged();
+        }
+    }
+
+    @Override public void onConnected(BluetoothDevice device) {
+        Toast.makeText(this, "已连接 " + device.getName(), Toast.LENGTH_SHORT).show();
+        // 发挑战请求
+        sendChallenge();
+    }
+
+    @Override public void onDisconnected(String reason) {
+        Toast.makeText(this, "断开: " + reason, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override public void onMessage(String line) {
+        try {
+            JSONObject o = new JSONObject(line);
+            String type = o.getString("type");
+            switch (type) {
+                case "challenge":
+                    runOnUiThread(() -> new AlertDialog.Builder(this)
+                            .setTitle("对战请求")
+                            .setMessage("是否接受对战？")
+                            .setPositiveButton("接受", (d, w) -> {
+                                try {
+                                    JSONObject ok = new JSONObject(); ok.put("type", "accept");
+                                    bt.sendLine(ok.toString());
+                                    myColor = 2; // 作为后手
+                                    turn = 1;    // 对方先下
+                                } catch (Exception ignored) {}
+                            })
+                            .setNegativeButton("拒绝", (d, w) -> {
+                                try { JSONObject r = new JSONObject(); r.put("type", "reject"); bt.sendLine(r.toString()); } catch (Exception ignored) {}
+                            }).show());
+                    break;
+                case "accept":
+                    Toast.makeText(this, "对方接受，开始游戏", Toast.LENGTH_SHORT).show();
+                    myColor = 1; turn = 1; // 我先手
+                    break;
+                case "reject":
+                    Toast.makeText(this, "对方拒绝", Toast.LENGTH_SHORT).show();
+                    break;
+                case "move":
+                    int r = o.getInt("r"), c = o.getInt("c"), color = o.getInt("color");
+                    runOnUiThread(() -> onRemoteMove(r, c, color));
+                    break;
+                case "undo_request":
+                    runOnUiThread(() -> new AlertDialog.Builder(this)
+                            .setTitle("悔棋请求")
+                            .setMessage("同意撤销上一步吗？")
+                            .setPositiveButton("同意", (d,w)-> {
+                                engine.undo(1); boardView.invalidate();
+                                try { JSONObject ok = new JSONObject(); ok.put("type","undo_ok"); bt.sendLine(ok.toString()); } catch (Exception ignored) {}
+                                turn = other(turn); // 交换回合
+                            })
+                            .setNegativeButton("拒绝", null)
+                            .show());
+                    break;
+                case "undo_ok":
+                    runOnUiThread(() -> {
+                        engine.undo(1);
+                        boardView.invalidate();
+                        turn = other(turn);
+                    });
+                    break;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override public void onError(Throwable t) {
+        Toast.makeText(this, "错误: " + t.getMessage(), Toast.LENGTH_SHORT).show();
+    }
+
+    @Override protected void onDestroy() {
+        super.onDestroy();
+        bt.close();
+    }
+}

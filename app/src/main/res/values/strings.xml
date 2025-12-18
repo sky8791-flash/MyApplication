@@ -1,0 +1,7 @@
+<resources>
+    <!-- 你自己的主题，名称与 Manifest 保持一致 -->
+        <string name="app_name">MyApplication</string>
+    <style name="Theme.App" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- 可以在这里自定义颜色、字体等 -->
+    </style>
+</resources>
