@@ -1,6 +1,13 @@
 <resources>
     <!-- 你自己的主题，名称与 Manifest 保持一致 -->
-        <string name="app_name">MyApplication</string>
+    <string name="app_name">MyApplication</string>
+    
+    <string-array name="game_types">
+        <item>五子棋 (Gomoku)</item>
+        <item>围棋 (Go)</item>
+        <item>象棋 (Chinese Chess)</item>
+    </string-array>
+    
     <style name="Theme.App" parent="Theme.Material3.DayNight.NoActionBar">
         <!-- 可以在这里自定义颜色、字体等 -->
     </style>

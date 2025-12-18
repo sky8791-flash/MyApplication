@@ -13,6 +13,8 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.myapplication.BluetoothHelper;
 import com.example.myapplication.GomokuEngine;
+import com.example.myapplication.GoEngine;
+import com.example.myapplication.XiangqiEngine;
 import com.example.myapplication.BoardView;
 
 import org.json.JSONObject;
@@ -23,10 +25,14 @@ public class MainActivity extends AppCompatActivity implements BluetoothHelper.L
     private BluetoothHelper bt;
     private ArrayAdapter<String> deviceAdapter;
     private Map<String, BluetoothDevice> deviceMap = new HashMap<>();
-    private GomokuEngine engine = new GomokuEngine(15);
+    private GomokuEngine gomokuEngine = new GomokuEngine(15);
+    private GoEngine goEngine = new GoEngine(19);
+    private XiangqiEngine xiangqiEngine = new XiangqiEngine();
+    private BoardView.GameType currentGameType = BoardView.GameType.GOMOKU;
     private int myColor = 1; // 我方颜色，先手黑
     private int turn = 1;    // 当前轮到 color
     private BoardView boardView;
+    private Spinner spinnerGameType;
 
     private final String[] perms = new String[]{
             Manifest.permission.BLUETOOTH_SCAN,
@@ -42,9 +48,25 @@ public class MainActivity extends AppCompatActivity implements BluetoothHelper.L
         setContentView(R.layout.activity_main);
         bt = new BluetoothHelper(this, this);
 
+        // Setup game type spinner
+        spinnerGameType = findViewById(R.id.spinnerGameType);
+        ArrayAdapter<CharSequence> gameTypeAdapter = ArrayAdapter.createFromResource(
+            this, R.array.game_types, android.R.layout.simple_spinner_item);
+        gameTypeAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerGameType.setAdapter(gameTypeAdapter);
+        spinnerGameType.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                switchGameType(position);
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+
         boardView = findViewById(R.id.boardView);
-        boardView.bindEngine(engine);
+        boardView.bindGomokuEngine(gomokuEngine);
         boardView.setOnPlaceListener((r, c) -> tryPlace(r, c));
+        boardView.setOnXiangqiMoveListener((fromR, fromC, toR, toC) -> tryXiangqiMove(fromR, fromC, toR, toC));
 
         ListView list = findViewById(R.id.listDevices);
         deviceAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1);
@@ -60,6 +82,28 @@ public class MainActivity extends AppCompatActivity implements BluetoothHelper.L
         findViewById(R.id.btnDiscover).setOnClickListener(v -> checkPermAndDiscover());
         findViewById(R.id.btnHost).setOnClickListener(v -> bt.startServerAccept());
         findViewById(R.id.btnUndo).setOnClickListener(v -> sendUndoRequest());
+    }
+
+    private void switchGameType(int position) {
+        switch (position) {
+            case 0: // Gomoku
+                currentGameType = BoardView.GameType.GOMOKU;
+                gomokuEngine = new GomokuEngine(15);
+                boardView.bindGomokuEngine(gomokuEngine);
+                break;
+            case 1: // Go
+                currentGameType = BoardView.GameType.GO;
+                goEngine = new GoEngine(19);
+                boardView.bindGoEngine(goEngine);
+                break;
+            case 2: // Xiangqi
+                currentGameType = BoardView.GameType.XIANGQI;
+                xiangqiEngine = new XiangqiEngine();
+                boardView.bindXiangqiEngine(xiangqiEngine);
+                break;
+        }
+        myColor = 1;
+        turn = 1;
     }
 
     private void checkPermAndDiscover() {
@@ -79,30 +123,79 @@ public class MainActivity extends AppCompatActivity implements BluetoothHelper.L
     /* ========== 游戏交互 ========== */
     private void tryPlace(int r, int c) {
         if (turn != myColor) { Toast.makeText(this, "等待对手", Toast.LENGTH_SHORT).show(); return; }
-        if (!engine.place(r, c, myColor)) return;
+        
+        boolean success = false;
+        if (currentGameType == BoardView.GameType.GOMOKU) {
+            success = gomokuEngine.place(r, c, myColor);
+        } else if (currentGameType == BoardView.GameType.GO) {
+            success = goEngine.place(r, c, myColor);
+        }
+        
+        if (!success) return;
         boardView.invalidate();
-        sendMove(r, c, myColor);
-        if (engine.checkWin(r, c)) {
+        sendMove(r, c, myColor, -1, -1);
+        
+        boolean won = false;
+        if (currentGameType == BoardView.GameType.GOMOKU) {
+            won = gomokuEngine.checkWin(r, c);
+        } else if (currentGameType == BoardView.GameType.GO) {
+            won = goEngine.checkWin(r, c);
+        }
+        
+        if (won) {
             Toast.makeText(this, "你赢了!", Toast.LENGTH_LONG).show();
         } else {
             turn = other(myColor);
         }
     }
 
-    private void onRemoteMove(int r, int c, int color) {
-        engine.place(r, c, color);
+    private void tryXiangqiMove(int fromR, int fromC, int toR, int toC) {
+        if (turn != myColor) { Toast.makeText(this, "等待对手", Toast.LENGTH_SHORT).show(); return; }
+        if (!xiangqiEngine.place(fromR, fromC, toR, toC, myColor)) return;
+        
         boardView.invalidate();
-        if (engine.checkWin(r, c)) {
-            Toast.makeText(this, "你输了", Toast.LENGTH_LONG).show();
+        sendMove(toR, toC, myColor, fromR, fromC);
+        
+        if (xiangqiEngine.checkWin(toR, toC)) {
+            Toast.makeText(this, "你赢了!", Toast.LENGTH_LONG).show();
         } else {
-            turn = myColor;
+            turn = other(myColor);
         }
     }
 
-    private void sendMove(int r, int c, int color) {
+    private void onRemoteMove(int r, int c, int color, int fromR, int fromC) {
+        if (currentGameType == BoardView.GameType.XIANGQI) {
+            xiangqiEngine.place(fromR, fromC, r, c, color);
+            if (xiangqiEngine.checkWin(r, c)) {
+                Toast.makeText(this, "你输了", Toast.LENGTH_LONG).show();
+            }
+        } else if (currentGameType == BoardView.GameType.GOMOKU) {
+            gomokuEngine.place(r, c, color);
+            if (gomokuEngine.checkWin(r, c)) {
+                Toast.makeText(this, "你输了", Toast.LENGTH_LONG).show();
+            }
+        } else if (currentGameType == BoardView.GameType.GO) {
+            goEngine.place(r, c, color);
+            if (goEngine.checkWin(r, c)) {
+                Toast.makeText(this, "你输了", Toast.LENGTH_LONG).show();
+            }
+        }
+        boardView.invalidate();
+        turn = myColor;
+    }
+
+    private void sendMove(int r, int c, int color, int fromR, int fromC) {
         try {
             JSONObject o = new JSONObject();
-            o.put("type", "move"); o.put("r", r); o.put("c", c); o.put("color", color);
+            o.put("type", "move"); 
+            o.put("r", r); 
+            o.put("c", c); 
+            o.put("color", color);
+            o.put("gameType", currentGameType.ordinal());
+            if (currentGameType == BoardView.GameType.XIANGQI) {
+                o.put("fromR", fromR);
+                o.put("fromC", fromC);
+            }
             bt.sendLine(o.toString());
         } catch (Exception e) { e.printStackTrace(); }
     }
@@ -173,14 +266,23 @@ public class MainActivity extends AppCompatActivity implements BluetoothHelper.L
                     break;
                 case "move":
                     int r = o.getInt("r"), c = o.getInt("c"), color = o.getInt("color");
-                    runOnUiThread(() -> onRemoteMove(r, c, color));
+                    int fromR = o.optInt("fromR", -1);
+                    int fromC = o.optInt("fromC", -1);
+                    runOnUiThread(() -> onRemoteMove(r, c, color, fromR, fromC));
                     break;
                 case "undo_request":
                     runOnUiThread(() -> new AlertDialog.Builder(this)
                             .setTitle("悔棋请求")
                             .setMessage("同意撤销上一步吗？")
                             .setPositiveButton("同意", (d,w)-> {
-                                engine.undo(1); boardView.invalidate();
+                                if (currentGameType == BoardView.GameType.GOMOKU) {
+                                    gomokuEngine.undo(1);
+                                } else if (currentGameType == BoardView.GameType.GO) {
+                                    goEngine.undo(1);
+                                } else if (currentGameType == BoardView.GameType.XIANGQI) {
+                                    xiangqiEngine.undo(1);
+                                }
+                                boardView.invalidate();
                                 try { JSONObject ok = new JSONObject(); ok.put("type","undo_ok"); bt.sendLine(ok.toString()); } catch (Exception ignored) {}
                                 turn = other(turn); // 交换回合
                             })
@@ -189,7 +291,13 @@ public class MainActivity extends AppCompatActivity implements BluetoothHelper.L
                     break;
                 case "undo_ok":
                     runOnUiThread(() -> {
-                        engine.undo(1);
+                        if (currentGameType == BoardView.GameType.GOMOKU) {
+                            gomokuEngine.undo(1);
+                        } else if (currentGameType == BoardView.GameType.GO) {
+                            goEngine.undo(1);
+                        } else if (currentGameType == BoardView.GameType.XIANGQI) {
+                            xiangqiEngine.undo(1);
+                        }
                         boardView.invalidate();
                         turn = other(turn);
                     });
