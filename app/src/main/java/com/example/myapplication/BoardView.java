@@ -117,8 +117,9 @@ public class BoardView extends View {
         if (xiangqiEngine == null) return;
         
         float w = getWidth(), h = getHeight();
-        float cellX = w / 8f;
-        float cellY = h / 9f;
+        // Xiangqi board is 9 columns (8 intervals) x 10 rows (9 intervals)
+        float cellX = w / 8f;  // 8 intervals for 9 columns
+        float cellY = h / 9f;  // 9 intervals for 10 rows
         
         // Draw board lines
         for (int r = 0; r < 10; r++) {

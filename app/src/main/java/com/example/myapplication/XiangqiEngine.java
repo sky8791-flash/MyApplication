@@ -6,10 +6,10 @@ import java.util.Deque;
 public class XiangqiEngine {
     public static class Move {
         public final int r, c, piece, color;
-        public final int toR, toC, capturedPiece;
-        public Move(int r, int c, int piece, int color, int toR, int toC, int capturedPiece) {
+        public final int toR, toC, capturedPieceValue;
+        public Move(int r, int c, int piece, int color, int toR, int toC, int capturedPieceValue) {
             this.r = r; this.c = c; this.piece = piece; this.color = color;
-            this.toR = toR; this.toC = toC; this.capturedPiece = capturedPiece;
+            this.toR = toR; this.toC = toC; this.capturedPieceValue = capturedPieceValue;
         }
     }
 
@@ -61,7 +61,7 @@ public class XiangqiEngine {
         board[toR][toC] = piece;
         board[fromR][fromC] = 0;
         
-        stack.addLast(new Move(fromR, fromC, piece / 10, color, toR, toC, targetPiece / 10));
+        stack.addLast(new Move(fromR, fromC, piece / 10, color, toR, toC, targetPiece));
         return true;
     }
 
@@ -196,7 +196,7 @@ public class XiangqiEngine {
             Move m = stack.pollLast();
             if (m == null) break;
             board[m.r][m.c] = m.piece * 10 + m.color;
-            board[m.toR][m.toC] = (m.capturedPiece == 0) ? 0 : (m.capturedPiece * 10 + (3 - m.color));
+            board[m.toR][m.toC] = m.capturedPieceValue;
             ok = true;
         }
         return ok;

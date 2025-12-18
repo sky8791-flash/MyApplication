@@ -14,12 +14,11 @@ public class GoEngine {
     private final int size;
     private final int[][] board;
     private final Deque<Move> stack = new ArrayDeque<>();
-    private int[][] lastBoardState; // For ko rule
+    private final Deque<int[][]> boardHistory = new ArrayDeque<>(); // For ko rule tracking
 
     public GoEngine(int size) {
         this.size = size;
         this.board = new int[size][size];
-        this.lastBoardState = null;
     }
 
     public boolean place(int r, int c, int color) {
@@ -52,13 +51,18 @@ public class GoEngine {
             return false;
         }
         
-        // Ko rule: check if board state matches last state
-        if (lastBoardState != null && boardsEqual(board, lastBoardState)) {
+        // Ko rule: check if board state matches the immediate previous state
+        if (!boardHistory.isEmpty() && boardsEqual(board, boardHistory.peekLast())) {
             copyBoard(beforeState, board);
             return false;
         }
         
-        lastBoardState = beforeState;
+        // Save state for ko rule and move history
+        boardHistory.addLast(beforeState);
+        if (boardHistory.size() > 2) {
+            boardHistory.removeFirst(); // Keep only last 2 states for simple ko
+        }
+        
         stack.addLast(new Move(r, c, color));
         return true;
     }
@@ -129,10 +133,17 @@ public class GoEngine {
         for (int i = 0; i < steps; i++) {
             Move m = stack.pollLast();
             if (m == null) break;
-            board[m.r][m.c] = 0;
+            
+            // Restore previous board state if available
+            if (!boardHistory.isEmpty()) {
+                int[][] prevState = boardHistory.pollLast();
+                copyBoard(prevState, board);
+            } else {
+                // Fallback: just clear the stone if no history
+                board[m.r][m.c] = 0;
+            }
             ok = true;
         }
-        lastBoardState = null; // Reset ko rule state
         return ok;
     }
 
