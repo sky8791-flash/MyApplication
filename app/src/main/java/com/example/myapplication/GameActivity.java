@@ -184,13 +184,16 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
             o.put("r", r); 
             o.put("c", c); 
             o.put("color", color);
-            o.put("gameType", currentGameType.ordinal());
+            o.put("gameType", currentGameType.name());
             if (currentGameType == BoardView.GameType.XIANGQI) {
                 o.put("fromR", fromR);
                 o.put("fromC", fromC);
             }
             bt.sendLine(o.toString());
-        } catch (Exception e) { e.printStackTrace(); }
+        } catch (Exception e) { 
+            e.printStackTrace();
+            Toast.makeText(this, "发送移动失败", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private int other(int c) { return c == 1 ? 2 : 1; }
@@ -202,14 +205,20 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
             o.put("from", "Player");
             o.put("gameType", gameTypeStr);
             bt.sendLine(o.toString());
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void sendUndoRequest() {
         try {
-            JSONObject o = new JSONObject(); o.put("type", "undo_request");
+            JSONObject o = new JSONObject(); 
+            o.put("type", "undo_request");
             bt.sendLine(o.toString());
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "发送悔棋请求失败", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override public void onDeviceFound(BluetoothDevice device) {
@@ -241,14 +250,23 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                             .setMessage("是否接受对战？")
                             .setPositiveButton("接受", (d, w) -> {
                                 try {
-                                    JSONObject ok = new JSONObject(); ok.put("type", "accept");
+                                    JSONObject ok = new JSONObject(); 
+                                    ok.put("type", "accept");
                                     bt.sendLine(ok.toString());
                                     myColor = 2;
                                     turn = 1;
-                                } catch (Exception ignored) {}
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
                             })
                             .setNegativeButton("拒绝", (d, w) -> {
-                                try { JSONObject r = new JSONObject(); r.put("type", "reject"); bt.sendLine(r.toString()); } catch (Exception ignored) {}
+                                try { 
+                                    JSONObject r = new JSONObject(); 
+                                    r.put("type", "reject"); 
+                                    bt.sendLine(r.toString()); 
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
                             }).show());
                     break;
                 case "accept":
@@ -277,7 +295,13 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                                     xiangqiEngine.undo(1);
                                 }
                                 boardView.invalidate();
-                                try { JSONObject ok = new JSONObject(); ok.put("type","undo_ok"); bt.sendLine(ok.toString()); } catch (Exception ignored) {}
+                                try { 
+                                    JSONObject ok = new JSONObject(); 
+                                    ok.put("type","undo_ok"); 
+                                    bt.sendLine(ok.toString()); 
+                                } catch (Exception e) {
+                                    e.printStackTrace();
+                                }
                                 turn = other(turn);
                             })
                             .setNegativeButton("拒绝", null)
