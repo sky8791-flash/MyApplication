@@ -30,6 +30,11 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
     private MaterialCardView cardDevices;
     private TextView tvGameTitle;
     private String gameTypeStr;
+    
+    // AI opponent
+    private SimpleAI ai;
+    private boolean playingAgainstAI = false;
+    private final Handler aiHandler = new Handler(Looper.getMainLooper());
 
     private final String[] perms = new String[]{
             Manifest.permission.BLUETOOTH_SCAN,
@@ -97,7 +102,114 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
             cardDevices.setVisibility(View.VISIBLE);
         });
         findViewById(R.id.btnHost).setOnClickListener(v -> bt.startServerAccept());
-        findViewById(R.id.btnUndo).setOnClickListener(v -> sendUndoRequest());
+        findViewById(R.id.btnAI).setOnClickListener(v -> showAIDifficultyDialog());
+        findViewById(R.id.btnUndo).setOnClickListener(v -> {
+            if (playingAgainstAI) {
+                performUndo();
+            } else {
+                sendUndoRequest();
+            }
+        });
+    }
+    
+    private void showAIDifficultyDialog() {
+        String[] difficulties = {"简单", "中等", "困难"};
+        new AlertDialog.Builder(this)
+                .setTitle("选择AI难度")
+                .setItems(difficulties, (dialog, which) -> {
+                    SimpleAI.Difficulty difficulty;
+                    switch (which) {
+                        case 0: difficulty = SimpleAI.Difficulty.EASY; break;
+                        case 1: difficulty = SimpleAI.Difficulty.MEDIUM; break;
+                        case 2: difficulty = SimpleAI.Difficulty.HARD; break;
+                        default: difficulty = SimpleAI.Difficulty.MEDIUM;
+                    }
+                    startAIGame(difficulty);
+                })
+                .setNegativeButton("取消", null)
+                .show();
+    }
+    
+    private void startAIGame(SimpleAI.Difficulty difficulty) {
+        ai = new SimpleAI(difficulty);
+        playingAgainstAI = true;
+        myColor = 1;
+        turn = 1;
+        
+        // Reset game
+        switch (currentGameType) {
+            case GOMOKU:
+                gomokuEngine = new GomokuEngine(15);
+                boardView.bindGomokuEngine(gomokuEngine);
+                break;
+            case GO:
+                goEngine = new GoEngine(19);
+                boardView.bindGoEngine(goEngine);
+                break;
+            case XIANGQI:
+                xiangqiEngine = new XiangqiEngine();
+                boardView.bindXiangqiEngine(xiangqiEngine);
+                break;
+        }
+        
+        Toast.makeText(this, "AI对战开始！你是" + (myColor == 1 ? "黑方" : "红方"), Toast.LENGTH_SHORT).show();
+    }
+    
+    private void performUndo() {
+        if (currentGameType == BoardView.GameType.GOMOKU) {
+            gomokuEngine.undo(2); // Undo both AI and player moves
+        } else if (currentGameType == BoardView.GameType.GO) {
+            goEngine.undo(2);
+        } else if (currentGameType == BoardView.GameType.XIANGQI) {
+            xiangqiEngine.undo(2);
+        }
+        boardView.invalidate();
+        turn = myColor;
+    }
+    
+    private void makeAIMove() {
+        aiHandler.postDelayed(() -> {
+            int aiColor = other(myColor);
+            
+            if (currentGameType == BoardView.GameType.XIANGQI) {
+                int[] move = ai.findBestXiangqiMove(xiangqiEngine, aiColor);
+                if (move != null && move.length == 4) {
+                    if (xiangqiEngine.place(move[0], move[1], move[2], move[3], aiColor)) {
+                        boardView.invalidate();
+                        if (xiangqiEngine.checkWin(move[2], move[3])) {
+                            Toast.makeText(this, "AI获胜！", Toast.LENGTH_LONG).show();
+                        } else {
+                            turn = myColor;
+                        }
+                    }
+                }
+            } else {
+                int[][] board = (currentGameType == BoardView.GameType.GOMOKU) ? 
+                    gomokuEngine.getBoard() : goEngine.getBoard();
+                int size = board.length;
+                
+                int[] move = ai.findBestMoveForBoard(board, aiColor, size);
+                if (move != null) {
+                    boolean success = false;
+                    if (currentGameType == BoardView.GameType.GOMOKU) {
+                        success = gomokuEngine.place(move[0], move[1], aiColor);
+                        if (success && gomokuEngine.checkWin(move[0], move[1])) {
+                            Toast.makeText(this, "AI获胜！", Toast.LENGTH_LONG).show();
+                        }
+                    } else if (currentGameType == BoardView.GameType.GO) {
+                        success = goEngine.place(move[0], move[1], aiColor);
+                        if (success && goEngine.checkWin(move[0], move[1])) {
+                            Toast.makeText(this, "AI获胜！", Toast.LENGTH_LONG).show();
+                        }
+                    }
+                    
+                    if (success) {
+                        boardView.invalidate();
+                        turn = myColor;
+                    }
+                }
+            }
+        }, 500); // 500ms delay for AI move
     }
 
     private void checkPermAndDiscover() {
@@ -126,7 +238,10 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
         
         if (!success) return;
         boardView.invalidate();
-        sendMove(r, c, myColor, -1, -1);
+        
+        if (!playingAgainstAI) {
+            sendMove(r, c, myColor, -1, -1);
+        }
         
         boolean won = false;
         if (currentGameType == BoardView.GameType.GOMOKU) {
@@ -139,6 +254,9 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
             Toast.makeText(this, "你赢了!", Toast.LENGTH_LONG).show();
         } else {
             turn = other(myColor);
+            if (playingAgainstAI) {
+                makeAIMove();
+            }
         }
     }
 
@@ -147,12 +265,18 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
         if (!xiangqiEngine.place(fromR, fromC, toR, toC, myColor)) return;
         
         boardView.invalidate();
-        sendMove(toR, toC, myColor, fromR, fromC);
+        
+        if (!playingAgainstAI) {
+            sendMove(toR, toC, myColor, fromR, fromC);
+        }
         
         if (xiangqiEngine.checkWin(toR, toC)) {
             Toast.makeText(this, "你赢了!", Toast.LENGTH_LONG).show();
         } else {
             turn = other(myColor);
+            if (playingAgainstAI) {
+                makeAIMove();
+            }
         }
     }
 

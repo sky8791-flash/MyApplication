@@ -40,7 +40,7 @@
             android:layout_height="48dp"/>
     </LinearLayout>
 
-    <!-- Control Buttons -->
+    <!-- Bluetooth Control Buttons -->
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="match_parent"
@@ -72,9 +72,9 @@
             android:padding="8dp"/>
         
         <Button
-            android:id="@+id/btnUndo"
-            style="@style/WarningButton"
-            android:text="@string/undo_move"
+            android:id="@+id/btnAI"
+            style="@style/SecondaryButton"
+            android:text="🤖 AI对战"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -138,5 +138,24 @@
             android:layout_height="match_parent"
             android:layout_margin="8dp"/>
     </com.google.android.material.card.MaterialCardView>
+
+    <!-- Game Control Buttons (Separated) -->
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="8dp"
+        android:gravity="center">
+        
+        <Button
+            android:id="@+id/btnUndo"
+            style="@style/WarningButton"
+            android:text="@string/undo_move"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingStart="32dp"
+            android:paddingEnd="32dp"
+            android:textSize="14sp"/>
+    </LinearLayout>
 
 </LinearLayout>

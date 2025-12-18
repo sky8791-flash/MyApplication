@@ -143,9 +143,17 @@ public class BoardView extends View {
         if (xiangqiEngine == null) return;
         
         float w = getWidth(), h = getHeight();
-        // Xiangqi board is 9 columns (8 intervals) x 10 rows (9 intervals)
-        float cellX = w / 8f;  // 8 intervals for 9 columns
-        float cellY = h / 9f;  // 9 intervals for 10 rows
+        
+        // Calculate proper cell size to maintain aspect ratio (10:9)
+        // Xiangqi board is 9 columns x 10 rows
+        float cellSize = Math.min(w / 8f, h / 9f);
+        float boardWidth = cellSize * 8f;
+        float boardHeight = cellSize * 9f;
+        float offsetX = (w - boardWidth) / 2f;
+        float offsetY = (h - boardHeight) / 2f;
+        
+        float cellX = cellSize;
+        float cellY = cellSize;
         
         // Draw board background
         Paint bgPaint = new Paint();
@@ -158,15 +166,15 @@ public class BoardView extends View {
         boardLinePaint.setStrokeWidth(2.5f);
         
         for (int r = 0; r < 10; r++) {
-            canvas.drawLine(0, r * cellY, 8 * cellX, r * cellY, boardLinePaint);
+            canvas.drawLine(offsetX, offsetY + r * cellY, offsetX + 8 * cellX, offsetY + r * cellY, boardLinePaint);
         }
         for (int c = 0; c < 9; c++) {
             // Skip river in middle columns
             if (c == 0 || c == 8) {
-                canvas.drawLine(c * cellX, 0, c * cellX, 9 * cellY, boardLinePaint);
+                canvas.drawLine(offsetX + c * cellX, offsetY, offsetX + c * cellX, offsetY + 9 * cellY, boardLinePaint);
             } else {
-                canvas.drawLine(c * cellX, 0, c * cellX, 4 * cellY, boardLinePaint);
-                canvas.drawLine(c * cellX, 5 * cellY, c * cellX, 9 * cellY, boardLinePaint);
+                canvas.drawLine(offsetX + c * cellX, offsetY, offsetX + c * cellX, offsetY + 4 * cellY, boardLinePaint);
+                canvas.drawLine(offsetX + c * cellX, offsetY + 5 * cellY, offsetX + c * cellX, offsetY + 9 * cellY, boardLinePaint);
             }
         }
         
@@ -176,14 +184,14 @@ public class BoardView extends View {
         riverPaint.setTextSize(cellY * 0.6f);
         riverPaint.setTextAlign(Paint.Align.CENTER);
         riverPaint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-        canvas.drawText("楚河", w * 0.3f, 4.5f * cellY + riverPaint.getTextSize() * 0.35f, riverPaint);
-        canvas.drawText("汉界", w * 0.7f, 4.5f * cellY + riverPaint.getTextSize() * 0.35f, riverPaint);
+        canvas.drawText("楚河", offsetX + boardWidth * 0.3f, offsetY + 4.5f * cellY + riverPaint.getTextSize() * 0.35f, riverPaint);
+        canvas.drawText("汉界", offsetX + boardWidth * 0.7f, offsetY + 4.5f * cellY + riverPaint.getTextSize() * 0.35f, riverPaint);
         
         // Draw palace diagonals
-        canvas.drawLine(3 * cellX, 0, 5 * cellX, 2 * cellY, boardLinePaint);
-        canvas.drawLine(5 * cellX, 0, 3 * cellX, 2 * cellY, boardLinePaint);
-        canvas.drawLine(3 * cellX, 7 * cellY, 5 * cellX, 9 * cellY, boardLinePaint);
-        canvas.drawLine(5 * cellX, 7 * cellY, 3 * cellX, 9 * cellY, boardLinePaint);
+        canvas.drawLine(offsetX + 3 * cellX, offsetY, offsetX + 5 * cellX, offsetY + 2 * cellY, boardLinePaint);
+        canvas.drawLine(offsetX + 5 * cellX, offsetY, offsetX + 3 * cellX, offsetY + 2 * cellY, boardLinePaint);
+        canvas.drawLine(offsetX + 3 * cellX, offsetY + 7 * cellY, offsetX + 5 * cellX, offsetY + 9 * cellY, boardLinePaint);
+        canvas.drawLine(offsetX + 5 * cellX, offsetY + 7 * cellY, offsetX + 3 * cellX, offsetY + 9 * cellY, boardLinePaint);
         
         // Draw pieces
         int[][] board = xiangqiEngine.getBoard();
@@ -196,8 +204,8 @@ public class BoardView extends View {
                 int piece = board[r][c];
                 if (piece == 0) continue;
                 
-                float cx = c * cellX;
-                float cy = r * cellY;
+                float cx = offsetX + c * cellX;
+                float cy = offsetY + r * cellY;
                 
                 int pieceType = piece / 10;
                 int color = piece % 10;
@@ -236,8 +244,8 @@ public class BoardView extends View {
         
         // Highlight selected piece with animated glow effect
         if (selectedR >= 0 && selectedC >= 0) {
-            float cx = selectedC * cellX;
-            float cy = selectedR * cellY;
+            float cx = offsetX + selectedC * cellX;
+            float cy = offsetY + selectedR * cellY;
             
             // Draw outer glow
             Paint glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -282,10 +290,16 @@ public class BoardView extends View {
         if (xiangqiEngine == null || xiangqiMoveListener == null) return false;
         
         float w = getWidth(), h = getHeight();
-        float cellX = w / 8f;
-        float cellY = h / 9f;
-        int c = Math.round(e.getX() / cellX);
-        int r = Math.round(e.getY() / cellY);
+        
+        // Calculate proper cell size to maintain aspect ratio (10:9)
+        float cellSize = Math.min(w / 8f, h / 9f);
+        float boardWidth = cellSize * 8f;
+        float boardHeight = cellSize * 9f;
+        float offsetX = (w - boardWidth) / 2f;
+        float offsetY = (h - boardHeight) / 2f;
+        
+        int c = Math.round((e.getX() - offsetX) / cellSize);
+        int r = Math.round((e.getY() - offsetY) / cellSize);
         
         if (r < 0 || r >= 10 || c < 0 || c >= 9) return false;
         
