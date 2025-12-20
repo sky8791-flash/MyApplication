@@ -35,6 +35,10 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
     private SimpleAI ai;
     private boolean playingAgainstAI = false;
     private final Handler aiHandler = new Handler(Looper.getMainLooper());
+    
+    // Game state
+    private boolean gameStarted = false;
+    private boolean gameEnded = false;
 
     private final String[] perms = new String[]{
             Manifest.permission.BLUETOOTH_SCAN,
@@ -135,6 +139,8 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
         playingAgainstAI = true;
         myColor = 1;
         turn = 1;
+        gameStarted = true;
+        gameEnded = false;
         
         // Reset game
         switch (currentGameType) {
@@ -169,6 +175,8 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
     
     private void makeAIMove() {
         aiHandler.postDelayed(() -> {
+            if (gameEnded) return; // Don't make AI move if game ended
+            
             int aiColor = other(myColor);
             
             if (currentGameType == BoardView.GameType.XIANGQI) {
@@ -177,7 +185,8 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                     if (xiangqiEngine.place(move[0], move[1], move[2], move[3], aiColor)) {
                         boardView.invalidate();
                         if (xiangqiEngine.checkWin(move[2], move[3])) {
-                            Toast.makeText(this, "AI获胜！", Toast.LENGTH_LONG).show();
+                            gameEnded = true;
+                            showGameEndDialog("AI获胜！");
                         } else {
                             turn = myColor;
                         }
@@ -194,16 +203,18 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                     if (currentGameType == BoardView.GameType.GOMOKU) {
                         success = gomokuEngine.place(move[0], move[1], aiColor);
                         if (success && gomokuEngine.checkWin(move[0], move[1])) {
-                            Toast.makeText(this, "AI获胜！", Toast.LENGTH_LONG).show();
+                            gameEnded = true;
+                            showGameEndDialog("AI获胜！");
                         }
                     } else if (currentGameType == BoardView.GameType.GO) {
                         success = goEngine.place(move[0], move[1], aiColor);
                         if (success && goEngine.checkWin(move[0], move[1])) {
-                            Toast.makeText(this, "AI获胜！", Toast.LENGTH_LONG).show();
+                            gameEnded = true;
+                            showGameEndDialog("AI获胜！");
                         }
                     }
                     
-                    if (success) {
+                    if (success && !gameEnded) {
                         boardView.invalidate();
                         turn = myColor;
                     }
@@ -227,6 +238,14 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
     }
 
     private void tryPlace(int r, int c) {
+        if (!gameStarted) { 
+            Toast.makeText(this, "请先开始游戏（点击AI对战或连接蓝牙）", Toast.LENGTH_SHORT).show(); 
+            return; 
+        }
+        if (gameEnded) {
+            Toast.makeText(this, "游戏已结束，请重新开始", Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (turn != myColor) { Toast.makeText(this, "等待对手", Toast.LENGTH_SHORT).show(); return; }
         
         boolean success = false;
@@ -251,7 +270,8 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
         }
         
         if (won) {
-            Toast.makeText(this, "你赢了!", Toast.LENGTH_LONG).show();
+            gameEnded = true;
+            showGameEndDialog("你赢了!");
         } else {
             turn = other(myColor);
             if (playingAgainstAI) {
@@ -261,6 +281,14 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
     }
 
     private void tryXiangqiMove(int fromR, int fromC, int toR, int toC) {
+        if (!gameStarted) { 
+            Toast.makeText(this, "请先开始游戏（点击AI对战或连接蓝牙）", Toast.LENGTH_SHORT).show(); 
+            return; 
+        }
+        if (gameEnded) {
+            Toast.makeText(this, "游戏已结束，请重新开始", Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (turn != myColor) { Toast.makeText(this, "等待对手", Toast.LENGTH_SHORT).show(); return; }
         if (!xiangqiEngine.place(fromR, fromC, toR, toC, myColor)) return;
         
@@ -271,7 +299,8 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
         }
         
         if (xiangqiEngine.checkWin(toR, toC)) {
-            Toast.makeText(this, "你赢了!", Toast.LENGTH_LONG).show();
+            gameEnded = true;
+            showGameEndDialog("你赢了!");
         } else {
             turn = other(myColor);
             if (playingAgainstAI) {
@@ -284,21 +313,26 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
         if (currentGameType == BoardView.GameType.XIANGQI) {
             xiangqiEngine.place(fromR, fromC, r, c, color);
             if (xiangqiEngine.checkWin(r, c)) {
-                Toast.makeText(this, "你输了", Toast.LENGTH_LONG).show();
+                gameEnded = true;
+                showGameEndDialog("你输了");
             }
         } else if (currentGameType == BoardView.GameType.GOMOKU) {
             gomokuEngine.place(r, c, color);
             if (gomokuEngine.checkWin(r, c)) {
-                Toast.makeText(this, "你输了", Toast.LENGTH_LONG).show();
+                gameEnded = true;
+                showGameEndDialog("你输了");
             }
         } else if (currentGameType == BoardView.GameType.GO) {
             goEngine.place(r, c, color);
             if (goEngine.checkWin(r, c)) {
-                Toast.makeText(this, "你输了", Toast.LENGTH_LONG).show();
+                gameEnded = true;
+                showGameEndDialog("你输了");
             }
         }
         boardView.invalidate();
-        turn = myColor;
+        if (!gameEnded) {
+            turn = myColor;
+        }
     }
 
     private void sendMove(int r, int c, int color, int fromR, int fromC) {
@@ -321,6 +355,42 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
     }
 
     private int other(int c) { return c == 1 ? 2 : 1; }
+    
+    private void showGameEndDialog(String message) {
+        new AlertDialog.Builder(this)
+                .setTitle("游戏结束")
+                .setMessage(message)
+                .setPositiveButton("重新开始", (d, w) -> resetGame())
+                .setNegativeButton("返回菜单", (d, w) -> finish())
+                .setCancelable(false)
+                .show();
+    }
+    
+    private void resetGame() {
+        gameStarted = false;
+        gameEnded = false;
+        playingAgainstAI = false;
+        myColor = 1;
+        turn = 1;
+        
+        // Reset the game board
+        switch (currentGameType) {
+            case GOMOKU:
+                gomokuEngine = new GomokuEngine(15);
+                boardView.bindGomokuEngine(gomokuEngine);
+                break;
+            case GO:
+                goEngine = new GoEngine(19);
+                boardView.bindGoEngine(goEngine);
+                break;
+            case XIANGQI:
+                xiangqiEngine = new XiangqiEngine();
+                boardView.bindXiangqiEngine(xiangqiEngine);
+                break;
+        }
+        
+        Toast.makeText(this, "棋盘已重置，请开始新游戏", Toast.LENGTH_SHORT).show();
+    }
 
     private void sendChallenge() {
         try {
@@ -379,6 +449,9 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                                     bt.sendLine(ok.toString());
                                     myColor = 2;
                                     turn = 1;
+                                    gameStarted = true;
+                                    gameEnded = false;
+                                    playingAgainstAI = false;
                                 } catch (Exception e) {
                                     e.printStackTrace();
                                 }
@@ -395,7 +468,11 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                     break;
                 case "accept":
                     Toast.makeText(this, "对方接受，开始游戏", Toast.LENGTH_SHORT).show();
-                    myColor = 1; turn = 1;
+                    myColor = 1; 
+                    turn = 1;
+                    gameStarted = true;
+                    gameEnded = false;
+                    playingAgainstAI = false;
                     break;
                 case "reject":
                     Toast.makeText(this, "对方拒绝", Toast.LENGTH_SHORT).show();
