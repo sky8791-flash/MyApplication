@@ -21,7 +21,7 @@ public class SimpleAI {
     public int[] findBestMoveForBoard(int[][] board, int aiColor, int boardSize) {
         List<int[]> validMoves = new ArrayList<>();
         
-        // Find all valid moves
+        // Find all valid moves (empty positions)
         for (int r = 0; r < boardSize; r++) {
             for (int c = 0; c < boardSize; c++) {
                 if (board[r][c] == 0) {
@@ -34,80 +34,127 @@ public class SimpleAI {
         
         switch (difficulty) {
             case EASY:
-                // Random move near existing pieces or center
+                // For easy mode: prioritize moves near existing pieces
                 List<int[]> nearbyMoves = new ArrayList<>();
                 for (int[] move : validMoves) {
-                    if (hasNeighbor(board, move[0], move[1], boardSize)) {
+                    if (hasNeighborInRange(board, move[0], move[1], boardSize, 2)) {
                         nearbyMoves.add(move);
                     }
                 }
-                if (!nearbyMoves.isEmpty()) {
+                
+                // If we have nearby moves, pick one
+                if (!nearbyMoves.isEmpty() && nearbyMoves.size() > 0) {
                     return nearbyMoves.get(random.nextInt(nearbyMoves.size()));
                 }
-                // If no nearby moves, try center
-                if (validMoves.size() > boardSize * boardSize * 0.8) {
-                    int center = boardSize / 2;
-                    if (board[center][center] == 0) {
-                        return new int[]{center, center};
-                    }
+                
+                // If no pieces on board yet, try center
+                int center = boardSize / 2;
+                if (board[center][center] == 0) {
+                    return new int[]{center, center};
                 }
-                return validMoves.get(random.nextInt(validMoves.size()));
+                
+                // Otherwise random from all valid moves
+                if (validMoves.size() > 0) {
+                    return validMoves.get(random.nextInt(validMoves.size()));
+                }
+                break;
                 
             case MEDIUM:
-                // Use scoring system to find good moves
-                int[] bestMove = findBestMoveByScoring(board, aiColor, boardSize, 2);
-                return bestMove != null ? bestMove : validMoves.get(random.nextInt(validMoves.size()));
-                
             case HARD:
-                // Advanced scoring with deeper evaluation
-                bestMove = findBestMoveByScoring(board, aiColor, boardSize, 3);
-                return bestMove != null ? bestMove : validMoves.get(random.nextInt(validMoves.size()));
+                // Use scoring system to find good moves
+                int[] bestMove = findBestMoveByScoring(board, aiColor, boardSize, difficulty == Difficulty.HARD ? 3 : 2);
+                if (bestMove != null) {
+                    return bestMove;
+                }
+                
+                // Fallback: try nearby moves
+                List<int[]> fallbackMoves = new ArrayList<>();
+                for (int[] move : validMoves) {
+                    if (hasNeighborInRange(board, move[0], move[1], boardSize, 2)) {
+                        fallbackMoves.add(move);
+                    }
+                }
+                if (!fallbackMoves.isEmpty()) {
+                    return fallbackMoves.get(random.nextInt(fallbackMoves.size()));
+                }
+                
+                // Last resort: any valid move
+                if (validMoves.size() > 0) {
+                    return validMoves.get(random.nextInt(validMoves.size()));
+                }
+                break;
         }
         
-        return validMoves.get(random.nextInt(validMoves.size()));
+        // Final fallback
+        return validMoves.isEmpty() ? null : validMoves.get(random.nextInt(validMoves.size()));
     }
     
     // Enhanced move evaluation with scoring
     private int[] findBestMoveByScoring(int[][] board, int aiColor, int boardSize, int lookAhead) {
         int opponent = (aiColor == 1) ? 2 : 1;
-        int[] bestMove = null;
-        int bestScore = Integer.MIN_VALUE;
+        List<int[]> scoredMoves = new ArrayList<>();
         
-        // Evaluate all empty positions
+        // Evaluate all empty positions near existing pieces
         for (int r = 0; r < boardSize; r++) {
             for (int c = 0; c < boardSize; c++) {
                 if (board[r][c] != 0) continue;
                 
-                // Skip positions too far from existing pieces (optimization)
-                if (!hasNeighborInRange(board, r, c, boardSize, 2)) continue;
+                // Only consider positions near existing pieces (optimization)
+                if (!hasNeighborInRange(board, r, c, boardSize, 3)) continue;
                 
                 int score = 0;
                 
                 // Check if this move wins immediately
                 if (canWinAt(board, r, c, aiColor, boardSize)) {
-                    return new int[]{r, c}; // Immediate win
+                    return new int[]{r, c}; // Immediate win - return immediately
                 }
                 
                 // Check if this move blocks opponent's win
                 if (canWinAt(board, r, c, opponent, boardSize)) {
-                    score += 5000; // Must block
+                    score += 5000; // Must block winning move
                 }
                 
-                // Score based on patterns
+                // Score based on patterns for AI
                 score += scorePosition(board, r, c, aiColor, boardSize) * 2;
-                score += scorePosition(board, r, c, opponent, boardSize); // Also consider blocking
                 
-                // Add randomness for variety
-                score += random.nextInt(10);
+                // Also consider defensive scoring (blocking opponent patterns)
+                score += scorePosition(board, r, c, opponent, boardSize);
                 
-                if (score > bestScore) {
-                    bestScore = score;
-                    bestMove = new int[]{r, c};
+                // Add small randomness for variety
+                score += random.nextInt(20);
+                
+                scoredMoves.add(new int[]{r, c, score});
+            }
+        }
+        
+        // If we found no moves near pieces, expand search to entire board
+        if (scoredMoves.isEmpty()) {
+            for (int r = 0; r < boardSize; r++) {
+                for (int c = 0; c < boardSize; c++) {
+                    if (board[r][c] == 0) {
+                        int score = random.nextInt(50);
+                        // Slightly prefer center positions
+                        int centerDist = Math.abs(r - boardSize/2) + Math.abs(c - boardSize/2);
+                        score += (boardSize - centerDist) * 2;
+                        scoredMoves.add(new int[]{r, c, score});
+                    }
                 }
             }
         }
         
-        return bestMove;
+        if (scoredMoves.isEmpty()) return null;
+        
+        // Sort by score (descending)
+        scoredMoves.sort(new java.util.Comparator<int[]>() {
+            @Override
+            public int compare(int[] a, int[] b) {
+                return Integer.compare(b[2], a[2]);
+            }
+        });
+        
+        // Return best move
+        int[] best = scoredMoves.get(0);
+        return new int[]{best[0], best[1]};
     }
     
     // Check if placing at (r,c) creates a winning position
@@ -212,7 +259,7 @@ public class SimpleAI {
         int[][] board = engine.getBoard();
         int opponent = (aiColor == 1) ? 2 : 1;
         
-        // Find all valid moves by properly testing them
+        // Find all valid moves by testing them through the engine
         for (int fromR = 0; fromR < 10; fromR++) {
             for (int fromC = 0; fromC < 9; fromC++) {
                 int piece = board[fromR][fromC];
@@ -233,26 +280,32 @@ public class SimpleAI {
             }
         }
         
-        if (validMoves.isEmpty()) return null;
+        if (validMoves.isEmpty()) {
+            return null; // No valid moves available
+        }
         
-        // Sort by score and pick based on difficulty
+        // Sort by score (descending)
         validMoves.sort(new java.util.Comparator<int[]>() {
             @Override
             public int compare(int[] a, int[] b) {
-                return Integer.compare(b[4], a[4]); // Sort descending by score
+                return Integer.compare(b[4], a[4]);
             }
         });
         
+        // Pick move based on difficulty level
         int pickFrom;
         switch (difficulty) {
             case EASY:
-                pickFrom = Math.min(validMoves.size(), Math.max(5, validMoves.size() / 3));
+                // Easy: pick from top 40% of moves
+                pickFrom = Math.max(1, (int)(validMoves.size() * 0.4));
                 break;
             case MEDIUM:
-                pickFrom = Math.min(validMoves.size(), Math.max(3, validMoves.size() / 5));
+                // Medium: pick from top 20% of moves
+                pickFrom = Math.max(1, (int)(validMoves.size() * 0.2));
                 break;
             case HARD:
-                pickFrom = Math.min(validMoves.size(), 2); // Pick from top 2
+                // Hard: pick from top 3 moves
+                pickFrom = Math.min(3, validMoves.size());
                 break;
             default:
                 pickFrom = validMoves.size();

@@ -247,46 +247,46 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                     boardView.invalidate();
                 }
             } else {
-                // For Gomoku and Go, try up to 10 moves until one succeeds
-                boolean moved = false;
-                for (int attempt = 0; attempt < 10 && !moved; attempt++) {
-                    int[][] board = (currentGameType == BoardView.GameType.GOMOKU) ? 
-                        gomokuEngine.getBoard() : goEngine.getBoard();
-                    int size = board.length;
-                    
-                    int[] move = ai.findBestMoveForBoard(board, aiColor, size);
-                    if (move != null) {
-                        boolean success = false;
-                        if (currentGameType == BoardView.GameType.GOMOKU) {
-                            success = gomokuEngine.place(move[0], move[1], aiColor);
-                            if (success) {
-                                moved = true;
-                                if (gomokuEngine.checkWin(move[0], move[1])) {
-                                    gameEnded = true;
-                                    showGameEndDialog("AI获胜！");
-                                }
+                // For Gomoku and Go
+                int[][] board = (currentGameType == BoardView.GameType.GOMOKU) ? 
+                    gomokuEngine.getBoard() : goEngine.getBoard();
+                int size = board.length;
+                
+                int[] move = ai.findBestMoveForBoard(board, aiColor, size);
+                if (move != null) {
+                    boolean success = false;
+                    if (currentGameType == BoardView.GameType.GOMOKU) {
+                        success = gomokuEngine.place(move[0], move[1], aiColor);
+                        if (success) {
+                            if (gomokuEngine.checkWin(move[0], move[1])) {
+                                gameEnded = true;
+                                showGameEndDialog("AI获胜！");
                             }
-                        } else if (currentGameType == BoardView.GameType.GO) {
-                            success = goEngine.place(move[0], move[1], aiColor);
-                            if (success) {
-                                moved = true;
-                                if (goEngine.checkWin(move[0], move[1])) {
-                                    gameEnded = true;
-                                    showGameEndDialog("AI获胜！");
-                                }
+                        }
+                    } else if (currentGameType == BoardView.GameType.GO) {
+                        success = goEngine.place(move[0], move[1], aiColor);
+                        if (success) {
+                            if (goEngine.checkWin(move[0], move[1])) {
+                                gameEnded = true;
+                                showGameEndDialog("AI获胜！");
                             }
                         }
                     }
-                }
-                
-                if (moved && !gameEnded) {
-                    boardView.invalidate();
-                    turn = myColor;
-                } else if (!moved) {
-                    // AI couldn't find a valid move after 10 attempts
+                    
+                    if (success && !gameEnded) {
+                        boardView.invalidate();
+                        turn = myColor;
+                    } else if (!success) {
+                        // Move failed, return turn to player
+                        Toast.makeText(GameActivity.this, "AI移动失败，回合返还给你", Toast.LENGTH_SHORT).show();
+                        turn = myColor;
+                        boardView.invalidate();
+                    }
+                } else {
+                    // AI couldn't find a valid move
                     Toast.makeText(GameActivity.this, "AI无法找到有效移动，回合返还给你", Toast.LENGTH_SHORT).show();
-                    turn = myColor; // Give turn back to player
-                    boardView.invalidate(); // Refresh UI
+                    turn = myColor;
+                    boardView.invalidate();
                 }
             }
             }
