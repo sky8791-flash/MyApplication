@@ -144,11 +144,22 @@ public class BoardView extends View {
         
         float w = getWidth(), h = getHeight();
         
-        // Calculate proper cell size to maintain aspect ratio (10:9)
-        // Xiangqi board is 9 columns x 10 rows
-        float cellSize = Math.min(w / 8f, h / 9f);
+        // Add padding for better appearance
+        float padding = Math.min(w, h) * 0.05f;
+        float availableWidth = w - 2 * padding;
+        float availableHeight = h - 2 * padding;
+        
+        // Calculate cell size to maintain 10:9 aspect ratio (10 rows x 9 columns)
+        // We need 8 horizontal cells (9 columns) and 9 vertical cells (10 rows)
+        float cellSizeByWidth = availableWidth / 8f;
+        float cellSizeByHeight = availableHeight / 9f;
+        float cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
+        
+        // Actual board dimensions
         float boardWidth = cellSize * 8f;
         float boardHeight = cellSize * 9f;
+        
+        // Center the board with padding
         float offsetX = (w - boardWidth) / 2f;
         float offsetY = (h - boardHeight) / 2f;
         
@@ -291,8 +302,15 @@ public class BoardView extends View {
         
         float w = getWidth(), h = getHeight();
         
-        // Calculate proper cell size to maintain aspect ratio (10:9)
-        float cellSize = Math.min(w / 8f, h / 9f);
+        // Use same calculation as drawXiangqi for consistency
+        float padding = Math.min(w, h) * 0.05f;
+        float availableWidth = w - 2 * padding;
+        float availableHeight = h - 2 * padding;
+        
+        float cellSizeByWidth = availableWidth / 8f;
+        float cellSizeByHeight = availableHeight / 9f;
+        float cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
+        
         float boardWidth = cellSize * 8f;
         float boardHeight = cellSize * 9f;
         float offsetX = (w - boardWidth) / 2f;
