@@ -192,8 +192,15 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                         }
                     } else {
                         // Move failed validation - this shouldn't happen with proper validation
-                        Toast.makeText(this, "AI移动失败，请重试", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "AI移动失败，回合返还给你", Toast.LENGTH_SHORT).show();
+                        turn = myColor; // Give turn back to player
+                        boardView.invalidate();
                     }
+                } else {
+                    // AI couldn't find a valid move
+                    Toast.makeText(this, "AI无法找到有效移动，回合返还给你", Toast.LENGTH_SHORT).show();
+                    turn = myColor; // Give turn back to player
+                    boardView.invalidate();
                 }
             } else {
                 // For Gomoku and Go, try up to 10 moves until one succeeds
@@ -233,8 +240,9 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                     turn = myColor;
                 } else if (!moved) {
                     // AI couldn't find a valid move after 10 attempts
-                    Toast.makeText(this, "AI无法找到有效移动", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "AI无法找到有效移动，回合返还给你", Toast.LENGTH_SHORT).show();
                     turn = myColor; // Give turn back to player
+                    boardView.invalidate(); // Refresh UI
                 }
             }
         }, 500); // 500ms delay for AI move
