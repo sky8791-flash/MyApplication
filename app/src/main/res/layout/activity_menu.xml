@@ -50,16 +50,14 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:padding="24dp"
-            android:gravity="center_vertical"
-            android:background="@android:drawable/dialog_holo_light_frame">
+            android:gravity="center_vertical">
             
             <TextView
                 android:layout_width="72dp"
                 android:layout_height="72dp"
                 android:text="🎯"
                 android:textSize="56sp"
-                android:gravity="center"
-                android:background="@android:drawable/dialog_holo_light_frame"/>
+                android:gravity="center"/>
             
             <LinearLayout
                 android:layout_width="0dp"

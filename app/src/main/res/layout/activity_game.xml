@@ -59,7 +59,7 @@
         <Button
             android:id="@+id/btnDiscover"
             style="@style/PrimaryButton"
-            android:text="🔍 @string/scan_devices"
+            android:text="@string/scan_devices"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -71,7 +71,7 @@
         <Button
             android:id="@+id/btnHost"
             style="@style/SecondaryButton"
-            android:text="📡 @string/wait_connection"
+            android:text="@string/wait_connection"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -117,7 +117,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="✨ @string/nearby_devices"
+                android:text="✨ 附近设备"
                 android:textSize="13sp"
                 android:textColor="@color/text_primary"
                 android:textStyle="bold"
@@ -173,7 +173,7 @@
         <Button
             android:id="@+id/btnUndo"
             style="@style/WarningButton"
-            android:text="↩️ @string/undo_move"
+            android:text="@string/undo_move"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:paddingStart="36dp"
