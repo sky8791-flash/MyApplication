@@ -3,29 +3,30 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     
-    <!-- Primary colors -->
-    <color name="primary">#2196F3</color>
-    <color name="primary_dark">#1976D2</color>
-    <color name="primary_light">#BBDEFB</color>
-    <color name="accent">#FF9800</color>
+    <!-- Anime-style Primary colors (Soft Pink/Purple) -->
+    <color name="primary">#FFB6C1</color>
+    <color name="primary_dark">#FF69B4</color>
+    <color name="primary_light">#FFE4E1</color>
+    <color name="accent">#DDA0DD</color>
     
-    <!-- Background colors -->
-    <color name="background_light">#F5F5F5</color>
+    <!-- Anime Background colors (Pastel) -->
+    <color name="background_light">#FFF0F5</color>
     <color name="card_background">#FFFFFF</color>
-    <color name="board_background">#DEB887</color>
+    <color name="board_background">#FFE4E1</color>
     
-    <!-- Text colors -->
-    <color name="text_primary">#212121</color>
-    <color name="text_secondary">#757575</color>
-    <color name="text_hint">#BDBDBD</color>
+    <!-- Text colors (Soft tones) -->
+    <color name="text_primary">#8B4789</color>
+    <color name="text_secondary">#C77FB8</color>
+    <color name="text_hint">#E6D5E6</color>
     
-    <!-- Game colors -->
-    <color name="gomoku_board">#DEB887</color>
-    <color name="go_board">#DCB35C</color>
-    <color name="xiangqi_board">#F4E4C1</color>
+    <!-- Game colors (Pastel tones) -->
+    <color name="gomoku_board">#FFDAB9</color>
+    <color name="go_board">#F0E68C</color>
+    <color name="xiangqi_board">#FFEFD5</color>
     
-    <!-- Button colors -->
-    <color name="button_primary">#4CAF50</color>
-    <color name="button_secondary">#2196F3</color>
-    <color name="button_warning">#FF9800</color>
+    <!-- Button colors (Cute pastels) -->
+    <color name="button_primary">#98D8C8</color>
+    <color name="button_secondary">#B4A7D6</color>
+    <color name="button_warning">#FFCBDB</color>
+    <color name="button_accent">#DDA0DD</color>
 </resources>
