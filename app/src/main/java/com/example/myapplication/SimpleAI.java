@@ -236,7 +236,12 @@ public class SimpleAI {
         if (validMoves.isEmpty()) return null;
         
         // Sort by score and pick based on difficulty
-        validMoves.sort((a, b) -> Integer.compare(b[4], a[4])); // Sort descending by score
+        validMoves.sort(new java.util.Comparator<int[]>() {
+            @Override
+            public int compare(int[] a, int[] b) {
+                return Integer.compare(b[4], a[4]); // Sort descending by score
+            }
+        });
         
         int pickFrom;
         switch (difficulty) {

@@ -42,8 +42,13 @@ public class BluetoothHelper {
         discoveryReceiver = new BroadcastReceiver() {
             @Override public void onReceive(Context ctx, Intent intent) {
                 if (BluetoothDevice.ACTION_FOUND.equals(intent.getAction())) {
-                    BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
-                    if (device != null) main.post(() -> listener.onDeviceFound(device));
+                    final BluetoothDevice device = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE);
+                    if (device != null) main.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            listener.onDeviceFound(device);
+                        }
+                    });
                 }
             }
         };
@@ -62,27 +67,33 @@ public class BluetoothHelper {
 
     /* ========== 服务端监听 ========== */
     public void startServerAccept() {
-        new Thread(() -> {
-            try {
-                serverSocket = adapter.listenUsingRfcommWithServiceRecord("Gomoku", APP_UUID);
-                BluetoothSocket s = serverSocket.accept();
-                handleConnected(s);
-            } catch (Exception e) {
-                postError(e);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    serverSocket = adapter.listenUsingRfcommWithServiceRecord("Gomoku", APP_UUID);
+                    BluetoothSocket s = serverSocket.accept();
+                    handleConnected(s);
+                } catch (Exception e) {
+                    postError(e);
+                }
             }
         }, "bt-accept").start();
     }
 
     /* ========== 客户端连接 ========== */
     public void connectTo(BluetoothDevice device) {
-        new Thread(() -> {
-            try {
-                stopDiscovery();
-                BluetoothSocket s = device.createRfcommSocketToServiceRecord(APP_UUID);
-                s.connect();
-                handleConnected(s);
-            } catch (Exception e) {
-                postError(e);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    stopDiscovery();
+                    BluetoothSocket s = device.createRfcommSocketToServiceRecord(APP_UUID);
+                    s.connect();
+                    handleConnected(s);
+                } catch (Exception e) {
+                    postError(e);
+                }
             }
         }, "bt-connect").start();
     }
@@ -90,21 +101,35 @@ public class BluetoothHelper {
     private void handleConnected(BluetoothSocket s) throws IOException {
         if (serverSocket != null) { try { serverSocket.close(); } catch (Exception ignored) {} }
         this.socket = s;
-        main.post(() -> listener.onConnected(s.getRemoteDevice()));
+        final BluetoothDevice device = s.getRemoteDevice();
+        main.post(new Runnable() {
+            @Override
+            public void run() {
+                listener.onConnected(device);
+            }
+        });
         startReadLoop(s);
     }
 
     private void startReadLoop(BluetoothSocket s) {
-        readThread = new Thread(() -> {
-            try (BufferedReader br = new BufferedReader(new InputStreamReader(s.getInputStream()))) {
-                String line;
-                while ((line = br.readLine()) != null) {
-                    String finalLine = line;
-                    main.post(() -> listener.onMessage(finalLine));
+        readThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(s.getInputStream()))) {
+                    String line;
+                    while ((line = br.readLine()) != null) {
+                        final String finalLine = line;
+                        main.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                listener.onMessage(finalLine);
+                            }
+                        });
+                    }
+                    postDisconnect("remote closed");
+                } catch (Exception e) {
+                    postError(e);
                 }
-                postDisconnect("remote closed");
-            } catch (Exception e) {
-                postError(e);
             }
         }, "bt-read");
         readThread.start();
@@ -127,9 +152,21 @@ public class BluetoothHelper {
     }
 
     private void postDisconnect(String reason) {
-        main.post(() -> listener.onDisconnected(reason));
+        final String finalReason = reason;
+        main.post(new Runnable() {
+            @Override
+            public void run() {
+                listener.onDisconnected(finalReason);
+            }
+        });
     }
     private void postError(Throwable t) {
-        main.post(() -> listener.onError(t));
+        final Throwable finalT = t;
+        main.post(new Runnable() {
+            @Override
+            public void run() {
+                listener.onError(finalT);
+            }
+        });
     }
 }

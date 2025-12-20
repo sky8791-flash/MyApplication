@@ -17,22 +17,31 @@ public class MenuActivity extends AppCompatActivity {
         MaterialCardView cardGo = findViewById(R.id.cardGo);
         MaterialCardView cardXiangqi = findViewById(R.id.cardXiangqi);
 
-        cardGomoku.setOnClickListener(v -> {
-            Intent intent = new Intent(MenuActivity.this, GameActivity.class);
-            intent.putExtra("GAME_TYPE", "GOMOKU");
-            startActivity(intent);
+        cardGomoku.setOnClickListener(new android.view.View.OnClickListener() {
+            @Override
+            public void onClick(android.view.View v) {
+                Intent intent = new Intent(MenuActivity.this, GameActivity.class);
+                intent.putExtra("GAME_TYPE", "GOMOKU");
+                startActivity(intent);
+            }
         });
 
-        cardGo.setOnClickListener(v -> {
-            Intent intent = new Intent(MenuActivity.this, GameActivity.class);
-            intent.putExtra("GAME_TYPE", "GO");
-            startActivity(intent);
+        cardGo.setOnClickListener(new android.view.View.OnClickListener() {
+            @Override
+            public void onClick(android.view.View v) {
+                Intent intent = new Intent(MenuActivity.this, GameActivity.class);
+                intent.putExtra("GAME_TYPE", "GO");
+                startActivity(intent);
+            }
         });
 
-        cardXiangqi.setOnClickListener(v -> {
-            Intent intent = new Intent(MenuActivity.this, GameActivity.class);
-            intent.putExtra("GAME_TYPE", "XIANGQI");
-            startActivity(intent);
+        cardXiangqi.setOnClickListener(new android.view.View.OnClickListener() {
+            @Override
+            public void onClick(android.view.View v) {
+                Intent intent = new Intent(MenuActivity.this, GameActivity.class);
+                intent.putExtra("GAME_TYPE", "XIANGQI");
+                startActivity(intent);
+            }
         });
     }
 }

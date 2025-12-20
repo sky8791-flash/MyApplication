@@ -47,7 +47,12 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
     };
     private final ActivityResultContracts.RequestMultiplePermissions permsContract = new ActivityResultContracts.RequestMultiplePermissions();
     private final androidx.activity.result.ActivityResultLauncher<String[]> permLauncher =
-            registerForActivityResult(permsContract, r -> startDiscovery());
+            registerForActivityResult(permsContract, new androidx.activity.result.ActivityResultCallback<Map<String, Boolean>>() {
+                @Override
+                public void onActivityResult(Map<String, Boolean> r) {
+                    startDiscovery();
+                }
+            });
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -86,32 +91,66 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                 break;
         }
 
-        boardView.setOnPlaceListener((r, c) -> tryPlace(r, c));
-        boardView.setOnXiangqiMoveListener((fromR, fromC, toR, toC) -> tryXiangqiMove(fromR, fromC, toR, toC));
+        boardView.setOnPlaceListener(new BoardView.OnPlaceListener() {
+            @Override
+            public void onPlace(int r, int c) {
+                tryPlace(r, c);
+            }
+        });
+        boardView.setOnXiangqiMoveListener(new BoardView.OnXiangqiMoveListener() {
+            @Override
+            public void onMove(int fromR, int fromC, int toR, int toC) {
+                tryXiangqiMove(fromR, fromC, toR, toC);
+            }
+        });
 
         ListView list = findViewById(R.id.listDevices);
         deviceAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1);
         list.setAdapter(deviceAdapter);
-        list.setOnItemClickListener((p, v, pos, id) -> {
-            String key = deviceAdapter.getItem(pos);
-            BluetoothDevice d = deviceMap.get(key);
-            if (d != null) {
-                bt.connectTo(d);
+        list.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> p, View v, int pos, long id) {
+                String key = deviceAdapter.getItem(pos);
+                BluetoothDevice d = deviceMap.get(key);
+                if (d != null) {
+                    bt.connectTo(d);
+                }
             }
         });
 
-        findViewById(R.id.btnBack).setOnClickListener(v -> finish());
-        findViewById(R.id.btnDiscover).setOnClickListener(v -> {
-            checkPermAndDiscover();
-            cardDevices.setVisibility(View.VISIBLE);
+        findViewById(R.id.btnBack).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                finish();
+            }
         });
-        findViewById(R.id.btnHost).setOnClickListener(v -> bt.startServerAccept());
-        findViewById(R.id.btnAI).setOnClickListener(v -> showAIDifficultyDialog());
-        findViewById(R.id.btnUndo).setOnClickListener(v -> {
-            if (playingAgainstAI) {
-                performUndo();
-            } else {
-                sendUndoRequest();
+        findViewById(R.id.btnDiscover).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                checkPermAndDiscover();
+                cardDevices.setVisibility(View.VISIBLE);
+            }
+        });
+        findViewById(R.id.btnHost).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                bt.startServerAccept();
+            }
+        });
+        findViewById(R.id.btnAI).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showAIDifficultyDialog();
+            }
+        });
+        findViewById(R.id.btnUndo).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (playingAgainstAI) {
+                    performUndo();
+                } else {
+                    sendUndoRequest();
+                }
             }
         });
     }
@@ -120,15 +159,18 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
         String[] difficulties = {"简单", "中等", "困难"};
         new AlertDialog.Builder(this)
                 .setTitle("选择AI难度")
-                .setItems(difficulties, (dialog, which) -> {
-                    SimpleAI.Difficulty difficulty;
-                    switch (which) {
-                        case 0: difficulty = SimpleAI.Difficulty.EASY; break;
-                        case 1: difficulty = SimpleAI.Difficulty.MEDIUM; break;
-                        case 2: difficulty = SimpleAI.Difficulty.HARD; break;
-                        default: difficulty = SimpleAI.Difficulty.MEDIUM;
+                .setItems(difficulties, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        SimpleAI.Difficulty difficulty;
+                        switch (which) {
+                            case 0: difficulty = SimpleAI.Difficulty.EASY; break;
+                            case 1: difficulty = SimpleAI.Difficulty.MEDIUM; break;
+                            case 2: difficulty = SimpleAI.Difficulty.HARD; break;
+                            default: difficulty = SimpleAI.Difficulty.MEDIUM;
+                        }
+                        startAIGame(difficulty);
                     }
-                    startAIGame(difficulty);
                 })
                 .setNegativeButton("取消", null)
                 .show();
@@ -174,31 +216,33 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
     }
     
     private void makeAIMove() {
-        aiHandler.postDelayed(() -> {
-            if (gameEnded) return; // Don't make AI move if game ended
-            
-            int aiColor = other(myColor);
-            
-            if (currentGameType == BoardView.GameType.XIANGQI) {
-                int[] move = ai.findBestXiangqiMove(xiangqiEngine, aiColor);
-                if (move != null && move.length == 4) {
-                    if (xiangqiEngine.place(move[0], move[1], move[2], move[3], aiColor)) {
-                        boardView.invalidate();
-                        if (xiangqiEngine.checkWin(move[2], move[3])) {
-                            gameEnded = true;
-                            showGameEndDialog("AI获胜！");
+        aiHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (gameEnded) return; // Don't make AI move if game ended
+                
+                int aiColor = other(myColor);
+                
+                if (currentGameType == BoardView.GameType.XIANGQI) {
+                    int[] move = ai.findBestXiangqiMove(xiangqiEngine, aiColor);
+                    if (move != null && move.length == 4) {
+                        if (xiangqiEngine.place(move[0], move[1], move[2], move[3], aiColor)) {
+                            boardView.invalidate();
+                            if (xiangqiEngine.checkWin(move[2], move[3])) {
+                                gameEnded = true;
+                                showGameEndDialog("AI获胜！");
+                            } else {
+                                turn = myColor;
+                            }
                         } else {
-                            turn = myColor;
-                        }
-                    } else {
-                        // Move failed validation - this shouldn't happen with proper validation
-                        Toast.makeText(this, "AI移动失败，回合返还给你", Toast.LENGTH_SHORT).show();
+                            // Move failed validation - this shouldn't happen with proper validation
+                            Toast.makeText(GameActivity.this, "AI移动失败，回合返还给你", Toast.LENGTH_SHORT).show();
                         turn = myColor; // Give turn back to player
                         boardView.invalidate();
                     }
                 } else {
                     // AI couldn't find a valid move
-                    Toast.makeText(this, "AI无法找到有效移动，回合返还给你", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(GameActivity.this, "AI无法找到有效移动，回合返还给你", Toast.LENGTH_SHORT).show();
                     turn = myColor; // Give turn back to player
                     boardView.invalidate();
                 }
@@ -240,10 +284,11 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                     turn = myColor;
                 } else if (!moved) {
                     // AI couldn't find a valid move after 10 attempts
-                    Toast.makeText(this, "AI无法找到有效移动，回合返还给你", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(GameActivity.this, "AI无法找到有效移动，回合返还给你", Toast.LENGTH_SHORT).show();
                     turn = myColor; // Give turn back to player
                     boardView.invalidate(); // Refresh UI
                 }
+            }
             }
         }, 500); // 500ms delay for AI move
     }
@@ -385,8 +430,18 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
         new AlertDialog.Builder(this)
                 .setTitle("游戏结束")
                 .setMessage(message)
-                .setPositiveButton("重新开始", (d, w) -> resetGame())
-                .setNegativeButton("返回菜单", (d, w) -> finish())
+                .setPositiveButton("重新开始", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int w) {
+                        resetGame();
+                    }
+                })
+                .setNegativeButton("返回菜单", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface d, int w) {
+                        finish();
+                    }
+                })
                 .setCancelable(false)
                 .show();
     }
@@ -464,32 +519,43 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
             String type = o.getString("type");
             switch (type) {
                 case "challenge":
-                    runOnUiThread(() -> new AlertDialog.Builder(this)
-                            .setTitle("对战请求")
-                            .setMessage("是否接受对战？")
-                            .setPositiveButton("接受", (d, w) -> {
-                                try {
-                                    JSONObject ok = new JSONObject(); 
-                                    ok.put("type", "accept");
-                                    bt.sendLine(ok.toString());
-                                    myColor = 2;
-                                    turn = 1;
-                                    gameStarted = true;
-                                    gameEnded = false;
-                                    playingAgainstAI = false;
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                            })
-                            .setNegativeButton("拒绝", (d, w) -> {
-                                try { 
-                                    JSONObject r = new JSONObject(); 
-                                    r.put("type", "reject"); 
-                                    bt.sendLine(r.toString()); 
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                            }).show());
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            new AlertDialog.Builder(GameActivity.this)
+                                    .setTitle("对战请求")
+                                    .setMessage("是否接受对战？")
+                                    .setPositiveButton("接受", new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface d, int w) {
+                                            try {
+                                                JSONObject ok = new JSONObject(); 
+                                                ok.put("type", "accept");
+                                                bt.sendLine(ok.toString());
+                                                myColor = 2;
+                                                turn = 1;
+                                                gameStarted = true;
+                                                gameEnded = false;
+                                                playingAgainstAI = false;
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
+                                            }
+                                        }
+                                    })
+                                    .setNegativeButton("拒绝", new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface d, int w) {
+                                            try { 
+                                                JSONObject r = new JSONObject(); 
+                                                r.put("type", "reject"); 
+                                                bt.sendLine(r.toString()); 
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
+                                            }
+                                        }
+                                    }).show();
+                        }
+                    });
                     break;
                 case "accept":
                     Toast.makeText(this, "对方接受，开始游戏", Toast.LENGTH_SHORT).show();
@@ -506,44 +572,65 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                     int r = o.getInt("r"), c = o.getInt("c"), color = o.getInt("color");
                     int fromR = o.optInt("fromR", -1);
                     int fromC = o.optInt("fromC", -1);
-                    runOnUiThread(() -> onRemoteMove(r, c, color, fromR, fromC));
+                    final int finalR = r;
+                    final int finalC = c;
+                    final int finalColor = color;
+                    final int finalFromR = fromR;
+                    final int finalFromC = fromC;
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            onRemoteMove(finalR, finalC, finalColor, finalFromR, finalFromC);
+                        }
+                    });
                     break;
                 case "undo_request":
-                    runOnUiThread(() -> new AlertDialog.Builder(this)
-                            .setTitle("悔棋请求")
-                            .setMessage("同意撤销上一步吗？")
-                            .setPositiveButton("同意", (d,w)-> {
-                                if (currentGameType == BoardView.GameType.GOMOKU) {
-                                    gomokuEngine.undo(1);
-                                } else if (currentGameType == BoardView.GameType.GO) {
-                                    goEngine.undo(1);
-                                } else if (currentGameType == BoardView.GameType.XIANGQI) {
-                                    xiangqiEngine.undo(1);
-                                }
-                                boardView.invalidate();
-                                try { 
-                                    JSONObject ok = new JSONObject(); 
-                                    ok.put("type","undo_ok"); 
-                                    bt.sendLine(ok.toString()); 
-                                } catch (Exception e) {
-                                    e.printStackTrace();
-                                }
-                                turn = other(turn);
-                            })
-                            .setNegativeButton("拒绝", null)
-                            .show());
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            new AlertDialog.Builder(GameActivity.this)
+                                    .setTitle("悔棋请求")
+                                    .setMessage("同意撤销上一步吗？")
+                                    .setPositiveButton("同意", new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface d, int w) {
+                                            if (currentGameType == BoardView.GameType.GOMOKU) {
+                                                gomokuEngine.undo(1);
+                                            } else if (currentGameType == BoardView.GameType.GO) {
+                                                goEngine.undo(1);
+                                            } else if (currentGameType == BoardView.GameType.XIANGQI) {
+                                                xiangqiEngine.undo(1);
+                                            }
+                                            boardView.invalidate();
+                                            try { 
+                                                JSONObject ok = new JSONObject(); 
+                                                ok.put("type","undo_ok"); 
+                                                bt.sendLine(ok.toString()); 
+                                            } catch (Exception e) {
+                                                e.printStackTrace();
+                                            }
+                                            turn = other(turn);
+                                        }
+                                    })
+                                    .setNegativeButton("拒绝", null)
+                                    .show();
+                        }
+                    });
                     break;
                 case "undo_ok":
-                    runOnUiThread(() -> {
-                        if (currentGameType == BoardView.GameType.GOMOKU) {
-                            gomokuEngine.undo(1);
-                        } else if (currentGameType == BoardView.GameType.GO) {
-                            goEngine.undo(1);
-                        } else if (currentGameType == BoardView.GameType.XIANGQI) {
-                            xiangqiEngine.undo(1);
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (currentGameType == BoardView.GameType.GOMOKU) {
+                                gomokuEngine.undo(1);
+                            } else if (currentGameType == BoardView.GameType.GO) {
+                                goEngine.undo(1);
+                            } else if (currentGameType == BoardView.GameType.XIANGQI) {
+                                xiangqiEngine.undo(1);
+                            }
+                            boardView.invalidate();
+                            turn = other(turn);
                         }
-                        boardView.invalidate();
-                        turn = other(turn);
                     });
                     break;
             }
