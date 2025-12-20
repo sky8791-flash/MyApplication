@@ -26,6 +26,32 @@ public class BoardView extends View {
     private int size = 15;
     private GameType gameType = GameType.GOMOKU;
     private int selectedR = -1, selectedC = -1; // For Xiangqi piece selection
+    
+    // Helper class to store Xiangqi board metrics
+    private static class XiangqiMetrics {
+        float padding, cellSize, offsetX, offsetY, boardWidth, boardHeight;
+    }
+    
+    // Calculate Xiangqi board layout metrics
+    private XiangqiMetrics calculateXiangqiMetrics() {
+        XiangqiMetrics m = new XiangqiMetrics();
+        float w = getWidth(), h = getHeight();
+        
+        m.padding = Math.min(w, h) * 0.05f;
+        float availableWidth = w - 2 * m.padding;
+        float availableHeight = h - 2 * m.padding;
+        
+        float cellSizeByWidth = availableWidth / 8f;
+        float cellSizeByHeight = availableHeight / 9f;
+        m.cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
+        
+        m.boardWidth = m.cellSize * 8f;
+        m.boardHeight = m.cellSize * 9f;
+        m.offsetX = (w - m.boardWidth) / 2f;
+        m.offsetY = (h - m.boardHeight) / 2f;
+        
+        return m;
+    }
 
     public BoardView(Context c, AttributeSet a) { super(c, a); init(); }
     private void init() {
@@ -142,34 +168,14 @@ public class BoardView extends View {
     private void drawXiangqi(Canvas canvas) {
         if (xiangqiEngine == null) return;
         
-        float w = getWidth(), h = getHeight();
-        
-        // Add padding for better appearance
-        float padding = Math.min(w, h) * 0.05f;
-        float availableWidth = w - 2 * padding;
-        float availableHeight = h - 2 * padding;
-        
-        // Calculate cell size to maintain 10:9 aspect ratio (10 rows x 9 columns)
-        // We need 8 horizontal cells (9 columns) and 9 vertical cells (10 rows)
-        float cellSizeByWidth = availableWidth / 8f;
-        float cellSizeByHeight = availableHeight / 9f;
-        float cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
-        
-        // Actual board dimensions
-        float boardWidth = cellSize * 8f;
-        float boardHeight = cellSize * 9f;
-        
-        // Center the board with padding
-        float offsetX = (w - boardWidth) / 2f;
-        float offsetY = (h - boardHeight) / 2f;
-        
-        float cellX = cellSize;
-        float cellY = cellSize;
+        XiangqiMetrics m = calculateXiangqiMetrics();
+        float cellX = m.cellSize;
+        float cellY = m.cellSize;
         
         // Draw board background
         Paint bgPaint = new Paint();
         bgPaint.setColor(Color.parseColor("#F4E4C1"));
-        canvas.drawRect(0, 0, w, h, bgPaint);
+        canvas.drawRect(0, 0, getWidth(), getHeight(), bgPaint);
         
         // Draw board lines with better styling
         Paint boardLinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -177,15 +183,15 @@ public class BoardView extends View {
         boardLinePaint.setStrokeWidth(2.5f);
         
         for (int r = 0; r < 10; r++) {
-            canvas.drawLine(offsetX, offsetY + r * cellY, offsetX + 8 * cellX, offsetY + r * cellY, boardLinePaint);
+            canvas.drawLine(m.offsetX, m.offsetY + r * cellY, m.offsetX + 8 * cellX, m.offsetY + r * cellY, boardLinePaint);
         }
         for (int c = 0; c < 9; c++) {
             // Skip river in middle columns
             if (c == 0 || c == 8) {
-                canvas.drawLine(offsetX + c * cellX, offsetY, offsetX + c * cellX, offsetY + 9 * cellY, boardLinePaint);
+                canvas.drawLine(m.offsetX + c * cellX, m.offsetY, m.offsetX + c * cellX, m.offsetY + 9 * cellY, boardLinePaint);
             } else {
-                canvas.drawLine(offsetX + c * cellX, offsetY, offsetX + c * cellX, offsetY + 4 * cellY, boardLinePaint);
-                canvas.drawLine(offsetX + c * cellX, offsetY + 5 * cellY, offsetX + c * cellX, offsetY + 9 * cellY, boardLinePaint);
+                canvas.drawLine(m.offsetX + c * cellX, m.offsetY, m.offsetX + c * cellX, m.offsetY + 4 * cellY, boardLinePaint);
+                canvas.drawLine(m.offsetX + c * cellX, m.offsetY + 5 * cellY, m.offsetX + c * cellX, m.offsetY + 9 * cellY, boardLinePaint);
             }
         }
         
@@ -195,14 +201,14 @@ public class BoardView extends View {
         riverPaint.setTextSize(cellY * 0.6f);
         riverPaint.setTextAlign(Paint.Align.CENTER);
         riverPaint.setTypeface(Typeface.create(Typeface.DEFAULT, Typeface.BOLD));
-        canvas.drawText("楚河", offsetX + boardWidth * 0.3f, offsetY + 4.5f * cellY + riverPaint.getTextSize() * 0.35f, riverPaint);
-        canvas.drawText("汉界", offsetX + boardWidth * 0.7f, offsetY + 4.5f * cellY + riverPaint.getTextSize() * 0.35f, riverPaint);
+        canvas.drawText("楚河", m.offsetX + m.boardWidth * 0.3f, m.offsetY + 4.5f * cellY + riverPaint.getTextSize() * 0.35f, riverPaint);
+        canvas.drawText("汉界", m.offsetX + m.boardWidth * 0.7f, m.offsetY + 4.5f * cellY + riverPaint.getTextSize() * 0.35f, riverPaint);
         
         // Draw palace diagonals
-        canvas.drawLine(offsetX + 3 * cellX, offsetY, offsetX + 5 * cellX, offsetY + 2 * cellY, boardLinePaint);
-        canvas.drawLine(offsetX + 5 * cellX, offsetY, offsetX + 3 * cellX, offsetY + 2 * cellY, boardLinePaint);
-        canvas.drawLine(offsetX + 3 * cellX, offsetY + 7 * cellY, offsetX + 5 * cellX, offsetY + 9 * cellY, boardLinePaint);
-        canvas.drawLine(offsetX + 5 * cellX, offsetY + 7 * cellY, offsetX + 3 * cellX, offsetY + 9 * cellY, boardLinePaint);
+        canvas.drawLine(m.offsetX + 3 * cellX, m.offsetY, m.offsetX + 5 * cellX, m.offsetY + 2 * cellY, boardLinePaint);
+        canvas.drawLine(m.offsetX + 5 * cellX, m.offsetY, m.offsetX + 3 * cellX, m.offsetY + 2 * cellY, boardLinePaint);
+        canvas.drawLine(m.offsetX + 3 * cellX, m.offsetY + 7 * cellY, m.offsetX + 5 * cellX, m.offsetY + 9 * cellY, boardLinePaint);
+        canvas.drawLine(m.offsetX + 5 * cellX, m.offsetY + 7 * cellY, m.offsetX + 3 * cellX, m.offsetY + 9 * cellY, boardLinePaint);
         
         // Draw pieces
         int[][] board = xiangqiEngine.getBoard();
@@ -215,8 +221,8 @@ public class BoardView extends View {
                 int piece = board[r][c];
                 if (piece == 0) continue;
                 
-                float cx = offsetX + c * cellX;
-                float cy = offsetY + r * cellY;
+                float cx = m.offsetX + c * cellX;
+                float cy = m.offsetY + r * cellY;
                 
                 int pieceType = piece / 10;
                 int color = piece % 10;
@@ -255,8 +261,8 @@ public class BoardView extends View {
         
         // Highlight selected piece with animated glow effect
         if (selectedR >= 0 && selectedC >= 0) {
-            float cx = offsetX + selectedC * cellX;
-            float cy = offsetY + selectedR * cellY;
+            float cx = m.offsetX + selectedC * cellX;
+            float cy = m.offsetY + selectedR * cellY;
             
             // Draw outer glow
             Paint glowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -300,24 +306,10 @@ public class BoardView extends View {
     private boolean handleXiangqiTouch(MotionEvent e) {
         if (xiangqiEngine == null || xiangqiMoveListener == null) return false;
         
-        float w = getWidth(), h = getHeight();
+        XiangqiMetrics m = calculateXiangqiMetrics();
         
-        // Use same calculation as drawXiangqi for consistency
-        float padding = Math.min(w, h) * 0.05f;
-        float availableWidth = w - 2 * padding;
-        float availableHeight = h - 2 * padding;
-        
-        float cellSizeByWidth = availableWidth / 8f;
-        float cellSizeByHeight = availableHeight / 9f;
-        float cellSize = Math.min(cellSizeByWidth, cellSizeByHeight);
-        
-        float boardWidth = cellSize * 8f;
-        float boardHeight = cellSize * 9f;
-        float offsetX = (w - boardWidth) / 2f;
-        float offsetY = (h - boardHeight) / 2f;
-        
-        int c = Math.round((e.getX() - offsetX) / cellSize);
-        int r = Math.round((e.getY() - offsetY) / cellSize);
+        int c = Math.round((e.getX() - m.offsetX) / m.cellSize);
+        int r = Math.round((e.getY() - m.offsetY) / m.cellSize);
         
         if (r < 0 || r >= 10 || c < 0 || c >= 9) return false;
         
