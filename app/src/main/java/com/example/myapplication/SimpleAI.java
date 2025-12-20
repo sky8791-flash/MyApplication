@@ -212,7 +212,7 @@ public class SimpleAI {
         int[][] board = engine.getBoard();
         int opponent = (aiColor == 1) ? 2 : 1;
         
-        // Find all valid moves by actually testing them
+        // Find all valid moves by properly testing them
         for (int fromR = 0; fromR < 10; fromR++) {
             for (int fromC = 0; fromC < 9; fromC++) {
                 int piece = board[fromR][fromC];
@@ -223,25 +223,8 @@ public class SimpleAI {
                     for (int toC = 0; toC < 9; toC++) {
                         if (fromR == toR && fromC == toC) continue;
                         
-                        // Save current state
-                        int targetPiece = board[toR][toC];
-                        
-                        // Try the move
-                        board[toR][toC] = piece;
-                        board[fromR][fromC] = 0;
-                        
-                        // Check if it's a valid board state (simplified check)
-                        boolean valid = true;
-                        if (targetPiece != 0 && targetPiece % 10 == aiColor) {
-                            valid = false; // Can't capture own piece
-                        }
-                        
-                        // Restore state
-                        board[fromR][fromC] = piece;
-                        board[toR][toC] = targetPiece;
-                        
-                        if (valid) {
-                            // Score the move
+                        // Use engine's validation method
+                        if (engine.isValidMoveTest(fromR, fromC, toR, toC, aiColor)) {
                             int score = scoreXiangqiMove(board, fromR, fromC, toR, toC, aiColor, opponent);
                             validMoves.add(new int[]{fromR, fromC, toR, toC, score});
                         }

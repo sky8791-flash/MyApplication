@@ -190,34 +190,51 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                         } else {
                             turn = myColor;
                         }
+                    } else {
+                        // Move failed validation - this shouldn't happen with proper validation
+                        Toast.makeText(this, "AI移动失败，请重试", Toast.LENGTH_SHORT).show();
                     }
                 }
             } else {
-                int[][] board = (currentGameType == BoardView.GameType.GOMOKU) ? 
-                    gomokuEngine.getBoard() : goEngine.getBoard();
-                int size = board.length;
-                
-                int[] move = ai.findBestMoveForBoard(board, aiColor, size);
-                if (move != null) {
-                    boolean success = false;
-                    if (currentGameType == BoardView.GameType.GOMOKU) {
-                        success = gomokuEngine.place(move[0], move[1], aiColor);
-                        if (success && gomokuEngine.checkWin(move[0], move[1])) {
-                            gameEnded = true;
-                            showGameEndDialog("AI获胜！");
-                        }
-                    } else if (currentGameType == BoardView.GameType.GO) {
-                        success = goEngine.place(move[0], move[1], aiColor);
-                        if (success && goEngine.checkWin(move[0], move[1])) {
-                            gameEnded = true;
-                            showGameEndDialog("AI获胜！");
-                        }
-                    }
+                // For Gomoku and Go, try up to 10 moves until one succeeds
+                boolean moved = false;
+                for (int attempt = 0; attempt < 10 && !moved; attempt++) {
+                    int[][] board = (currentGameType == BoardView.GameType.GOMOKU) ? 
+                        gomokuEngine.getBoard() : goEngine.getBoard();
+                    int size = board.length;
                     
-                    if (success && !gameEnded) {
-                        boardView.invalidate();
-                        turn = myColor;
+                    int[] move = ai.findBestMoveForBoard(board, aiColor, size);
+                    if (move != null) {
+                        boolean success = false;
+                        if (currentGameType == BoardView.GameType.GOMOKU) {
+                            success = gomokuEngine.place(move[0], move[1], aiColor);
+                            if (success) {
+                                moved = true;
+                                if (gomokuEngine.checkWin(move[0], move[1])) {
+                                    gameEnded = true;
+                                    showGameEndDialog("AI获胜！");
+                                }
+                            }
+                        } else if (currentGameType == BoardView.GameType.GO) {
+                            success = goEngine.place(move[0], move[1], aiColor);
+                            if (success) {
+                                moved = true;
+                                if (goEngine.checkWin(move[0], move[1])) {
+                                    gameEnded = true;
+                                    showGameEndDialog("AI获胜！");
+                                }
+                            }
+                        }
                     }
+                }
+                
+                if (moved && !gameEnded) {
+                    boardView.invalidate();
+                    turn = myColor;
+                } else if (!moved) {
+                    // AI couldn't find a valid move after 10 attempts
+                    Toast.makeText(this, "AI无法找到有效移动", Toast.LENGTH_SHORT).show();
+                    turn = myColor; // Give turn back to player
                 }
             }
         }, 500); // 500ms delay for AI move

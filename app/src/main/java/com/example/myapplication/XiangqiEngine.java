@@ -204,6 +204,21 @@ public class XiangqiEngine {
 
     public int[][] getBoard() { return board; }
     public Move getLastMove() { return stack.peekLast(); }
+    
+    // Test if a move is valid without making it
+    public boolean isValidMoveTest(int fromR, int fromC, int toR, int toC, int color) {
+        if (fromR < 0 || fromR >= 10 || fromC < 0 || fromC >= 9) return false;
+        if (toR < 0 || toR >= 10 || toC < 0 || toC >= 9) return false;
+        
+        int piece = board[fromR][fromC];
+        if (piece == 0) return false;
+        if (piece % 10 != color) return false;
+        
+        int targetPiece = board[toR][toC];
+        if (targetPiece != 0 && targetPiece % 10 == color) return false;
+        
+        return isValidMove(fromR, fromC, toR, toC, piece);
+    }
 
     public boolean checkWin(int toR, int toC) {
         // Check if a general was captured
