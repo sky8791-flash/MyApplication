@@ -1,46 +1,49 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.MyApplication" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Primary brand colors -->
+        <!-- Kawaii Primary brand colors -->
         <item name="colorPrimary">@color/primary</item>
         <item name="colorPrimaryDark">@color/primary_dark</item>
         <item name="colorAccent">@color/accent</item>
         
-        <!-- Background colors -->
+        <!-- Kawaii Background colors -->
         <item name="android:windowBackground">@color/background_light</item>
         <item name="android:colorBackground">@color/background_light</item>
         
-        <!-- Text colors -->
+        <!-- Cute Text colors -->
         <item name="android:textColorPrimary">@color/text_primary</item>
         <item name="android:textColorSecondary">@color/text_secondary</item>
     </style>
 
     <style name="Theme.MyApplication" parent="Base.Theme.MyApplication" />
     
-    <!-- Custom Anime-style button styles -->
+    <!-- Super Kawaii Anime-style button styles -->
     <style name="RoundedButton" parent="Widget.Material3.Button">
-        <item name="cornerRadius">20dp</item>
+        <item name="cornerRadius">24dp</item>
         <item name="android:textAllCaps">false</item>
-        <item name="android:elevation">8dp</item>
+        <item name="android:elevation">12dp</item>
         <item name="android:textSize">14sp</item>
-        <item name="android:paddingTop">14dp</item>
-        <item name="android:paddingBottom">14dp</item>
+        <item name="android:paddingTop">16dp</item>
+        <item name="android:paddingBottom">16dp</item>
         <item name="android:textStyle">bold</item>
-        <item name="strokeWidth">2dp</item>
+        <item name="strokeWidth">3dp</item>
     </style>
     
     <style name="PrimaryButton" parent="RoundedButton">
         <item name="backgroundTint">@color/button_primary</item>
-        <item name="strokeColor">@color/primary</item>
+        <item name="strokeColor">@color/sparkle_blue</item>
+        <item name="android:textColor">@color/text_primary</item>
     </style>
     
     <style name="SecondaryButton" parent="RoundedButton">
         <item name="backgroundTint">@color/button_secondary</item>
-        <item name="strokeColor">@color/accent</item>
+        <item name="strokeColor">@color/sparkle_purple</item>
+        <item name="android:textColor">@color/text_primary</item>
     </style>
     
     <style name="WarningButton" parent="RoundedButton">
         <item name="backgroundTint">@color/button_warning</item>
-        <item name="strokeColor">@color/primary_dark</item>
+        <item name="strokeColor">@color/heart_pink</item>
+        <item name="android:textColor">@color/text_primary</item>
     </style>
 </resources>

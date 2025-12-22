@@ -8,39 +8,52 @@
     android:gravity="center"
     android:padding="24dp">
 
-    <!-- Anime-style App Title with cute emoji -->
+    <!-- Super Kawaii App Title with sparkling emoji -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="🌸 棋类游戏 🌸"
-        android:textSize="40sp"
+        android:text="🌸✨ 棋类游戏 ✨🌸"
+        android:textSize="44sp"
         android:textStyle="bold"
         android:textColor="@color/primary"
-        android:layout_marginBottom="8dp"
-        android:shadowColor="#8B4789"
+        android:layout_marginBottom="4dp"
+        android:shadowColor="@color/sparkle_purple"
+        android:shadowDx="3"
+        android:shadowDy="3"
+        android:shadowRadius="8"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="💖 一起来玩吧 💖"
+        android:textSize="16sp"
+        android:textColor="@color/text_secondary"
+        android:textStyle="bold"
+        android:layout_marginBottom="4dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="⭐ 选择你最喜欢的游戏 ⭐"
+        android:textSize="18sp"
+        android:textColor="@color/primary_dark"
+        android:layout_marginBottom="28dp"
+        android:shadowColor="@color/sparkle_pink"
         android:shadowDx="2"
         android:shadowDy="2"
         android:shadowRadius="4"/>
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="✨ 选择你喜欢的游戏吧 ✨"
-        android:textSize="18sp"
-        android:textColor="@color/text_secondary"
-        android:layout_marginBottom="32dp"/>
-
-    <!-- Game Selection Cards with Anime Style -->
+    <!-- Kawaii Game Selection Cards with Anime Style -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardGomoku"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
-        app:cardCornerRadius="24dp"
-        app:cardElevation="12dp"
-        app:cardBackgroundColor="#FFF5EE"
-        app:strokeColor="@color/primary"
-        app:strokeWidth="2dp"
+        android:layout_marginBottom="18dp"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="16dp"
+        app:cardBackgroundColor="#FFF0F8"
+        app:strokeColor="@color/heart_pink"
+        app:strokeWidth="3dp"
         android:clickable="true"
         android:focusable="true"
         android:foreground="?attr/selectableItemBackground">
@@ -49,38 +62,55 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="24dp"
+            android:padding="20dp"
             android:gravity="center_vertical">
             
             <TextView
-                android:layout_width="72dp"
-                android:layout_height="72dp"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
                 android:text="🎯"
-                android:textSize="56sp"
-                android:gravity="center"/>
+                android:textSize="64sp"
+                android:gravity="center"
+                android:shadowColor="@color/sparkle_pink"
+                android:shadowDx="2"
+                android:shadowDy="2"
+                android:shadowRadius="6"/>
             
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:layout_marginStart="20dp">
+                android:layout_marginStart="16dp">
                 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="💕 五子棋"
-                    android:textSize="26sp"
+                    android:text="💕✨ 五子棋"
+                    android:textSize="28sp"
                     android:textStyle="bold"
-                    android:textColor="@color/text_primary"/>
+                    android:textColor="@color/text_primary"
+                    android:shadowColor="@color/sparkle_pink"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:shadowRadius="3"/>
                 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Gomoku - 15×15棋盘"
+                    android:text="Gomoku • 15×15棋盘"
                     android:textSize="14sp"
                     android:textColor="@color/text_secondary"
                     android:layout_marginTop="4dp"/>
+                    
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⭐ 经典五子连珠 ⭐"
+                    android:textSize="12sp"
+                    android:textColor="@color/sparkle_pink"
+                    android:layout_marginTop="2dp"
+                    android:textStyle="italic"/>
             </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
@@ -89,12 +119,12 @@
         android:id="@+id/cardGo"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
-        app:cardCornerRadius="24dp"
-        app:cardElevation="12dp"
-        app:cardBackgroundColor="#F0F8FF"
-        app:strokeColor="@color/accent"
-        app:strokeWidth="2dp"
+        android:layout_marginBottom="18dp"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="16dp"
+        app:cardBackgroundColor="#F0F5FF"
+        app:strokeColor="@color/sparkle_blue"
+        app:strokeWidth="3dp"
         android:clickable="true"
         android:focusable="true"
         android:foreground="?attr/selectableItemBackground">
@@ -103,38 +133,55 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="24dp"
+            android:padding="20dp"
             android:gravity="center_vertical">
             
             <TextView
-                android:layout_width="72dp"
-                android:layout_height="72dp"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
                 android:text="⚫"
-                android:textSize="56sp"
-                android:gravity="center"/>
+                android:textSize="64sp"
+                android:gravity="center"
+                android:shadowColor="@color/sparkle_blue"
+                android:shadowDx="2"
+                android:shadowDy="2"
+                android:shadowRadius="6"/>
             
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:layout_marginStart="20dp">
+                android:layout_marginStart="16dp">
                 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🌟 围棋"
-                    android:textSize="26sp"
+                    android:text="🌟💫 围棋"
+                    android:textSize="28sp"
                     android:textStyle="bold"
-                    android:textColor="@color/text_primary"/>
+                    android:textColor="@color/text_primary"
+                    android:shadowColor="@color/sparkle_blue"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:shadowRadius="3"/>
                 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Go - 19×19棋盘"
+                    android:text="Go • 19×19棋盘"
                     android:textSize="14sp"
                     android:textColor="@color/text_secondary"
                     android:layout_marginTop="4dp"/>
+                    
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⭐ 神秘东方智慧 ⭐"
+                    android:textSize="12sp"
+                    android:textColor="@color/sparkle_blue"
+                    android:layout_marginTop="2dp"
+                    android:textStyle="italic"/>
             </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
@@ -143,12 +190,12 @@
         android:id="@+id/cardXiangqi"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="20dp"
-        app:cardCornerRadius="24dp"
-        app:cardElevation="12dp"
-        app:cardBackgroundColor="#FFFACD"
-        app:strokeColor="@color/button_accent"
-        app:strokeWidth="2dp"
+        android:layout_marginBottom="18dp"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="16dp"
+        app:cardBackgroundColor="#FFFEF0"
+        app:strokeColor="@color/star_yellow"
+        app:strokeWidth="3dp"
         android:clickable="true"
         android:focusable="true"
         android:foreground="?attr/selectableItemBackground">
@@ -157,38 +204,55 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:padding="24dp"
+            android:padding="20dp"
             android:gravity="center_vertical">
             
             <TextView
-                android:layout_width="72dp"
-                android:layout_height="72dp"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
                 android:text="♟️"
-                android:textSize="56sp"
-                android:gravity="center"/>
+                android:textSize="64sp"
+                android:gravity="center"
+                android:shadowColor="@color/star_yellow"
+                android:shadowDx="2"
+                android:shadowDy="2"
+                android:shadowRadius="6"/>
             
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:layout_marginStart="20dp">
+                android:layout_marginStart="16dp">
                 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="✨ 象棋"
-                    android:textSize="26sp"
+                    android:text="✨🏆 象棋"
+                    android:textSize="28sp"
                     android:textStyle="bold"
-                    android:textColor="@color/text_primary"/>
+                    android:textColor="@color/text_primary"
+                    android:shadowColor="@color/star_yellow"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:shadowRadius="3"/>
                 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Chinese Chess - 10×9棋盘"
+                    android:text="Chinese Chess • 10×9棋盘"
                     android:textSize="14sp"
                     android:textColor="@color/text_secondary"
                     android:layout_marginTop="4dp"/>
+                    
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⭐ 楚河汉界对决 ⭐"
+                    android:textSize="12sp"
+                    android:textColor="@color/star_yellow"
+                    android:layout_marginTop="2dp"
+                    android:textStyle="italic"/>
             </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>

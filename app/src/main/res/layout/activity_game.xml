@@ -6,22 +6,22 @@
     android:layout_height="match_parent"
     android:background="@color/background_light">
 
-    <!-- Top Bar with Cute Anime Style -->
+    <!-- Top Bar with Super Kawaii Anime Style -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="12dp"
+        android:padding="14dp"
         android:gravity="center_vertical"
         android:background="@color/primary"
-        android:elevation="8dp">
+        android:elevation="12dp">
         
         <Button
             android:id="@+id/btnBack"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:text="←"
-            android:textSize="24sp"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:text="💝"
+            android:textSize="28sp"
             android:textColor="@color/white"
             android:background="?attr/selectableItemBackgroundBorderless"/>
         
@@ -30,19 +30,19 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="🎯 五子棋"
-            android:textSize="22sp"
+            android:text="🎯✨ 五子棋"
+            android:textSize="24sp"
             android:textStyle="bold"
             android:textColor="@color/white"
             android:gravity="center"
-            android:shadowColor="#8B4789"
-            android:shadowDx="1"
-            android:shadowDy="1"
-            android:shadowRadius="2"/>
+            android:shadowColor="@color/sparkle_purple"
+            android:shadowDx="2"
+            android:shadowDy="2"
+            android:shadowRadius="4"/>
         
         <View
-            android:layout_width="48dp"
-            android:layout_height="48dp"/>
+            android:layout_width="52dp"
+            android:layout_height="52dp"/>
     </LinearLayout>
 
     <!-- Bluetooth Control Buttons with Pastel Colors -->
@@ -84,7 +84,7 @@
         <Button
             android:id="@+id/btnAI"
             style="@style/SecondaryButton"
-            android:text="🤖 AI对战"
+            android:text="🤖💫 AI对战"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -94,7 +94,7 @@
             android:paddingBottom="8dp"/>
     </LinearLayout>
 
-    <!-- Devices List (Cute Card Style) -->
+    <!-- Devices List (Super Kawaii Card Style) -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardDevices"
         android:layout_width="match_parent"
@@ -103,11 +103,11 @@
         android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
         android:visibility="gone"
-        app:cardCornerRadius="16dp"
-        app:cardElevation="8dp"
-        app:cardBackgroundColor="#FFF0F5"
-        app:strokeColor="@color/primary_light"
-        app:strokeWidth="2dp">
+        app:cardCornerRadius="20dp"
+        app:cardElevation="12dp"
+        app:cardBackgroundColor="#FFF5FA"
+        app:strokeColor="@color/sparkle_pink"
+        app:strokeWidth="3dp">
         
         <LinearLayout
             android:layout_width="match_parent"
@@ -117,11 +117,15 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="✨ 附近设备"
-                android:textSize="13sp"
+                android:text="✨💕 附近设备"
+                android:textSize="14sp"
                 android:textColor="@color/text_primary"
                 android:textStyle="bold"
-                android:padding="12dp"/>
+                android:padding="14dp"
+                android:shadowColor="@color/sparkle_pink"
+                android:shadowDx="1"
+                android:shadowDy="1"
+                android:shadowRadius="2"/>
             
             <ListView
                 android:id="@+id/listDevices"
@@ -135,7 +139,7 @@
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
-    <!-- Game Board (Cute Rounded Style) -->
+    <!-- Game Board (Super Kawaii Rounded Style) -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -145,17 +149,17 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:cardCornerRadius="20dp"
-            app:cardElevation="12dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="16dp"
             app:cardBackgroundColor="@color/board_background"
-            app:strokeColor="@color/primary"
-            app:strokeWidth="3dp">
+            app:strokeColor="@color/sparkle_purple"
+            app:strokeWidth="4dp">
             
             <com.example.myapplication.BoardView
                 android:id="@+id/boardView"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_margin="6dp"/>
+                android:layout_margin="8dp"/>
         </com.google.android.material.card.MaterialCardView>
     </FrameLayout>
 

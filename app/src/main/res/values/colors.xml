@@ -3,30 +3,40 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     
-    <!-- Anime-style Primary colors (Soft Pink/Purple) -->
-    <color name="primary">#FFB6C1</color>
+    <!-- Kawaii Anime-style Primary colors (Vibrant Soft Pink/Purple) -->
+    <color name="primary">#FF9ECE</color>
     <color name="primary_dark">#FF69B4</color>
-    <color name="primary_light">#FFE4E1</color>
-    <color name="accent">#DDA0DD</color>
+    <color name="primary_light">#FFD4E8</color>
+    <color name="accent">#D8A0FF</color>
     
-    <!-- Anime Background colors (Pastel) -->
-    <color name="background_light">#FFF0F5</color>
+    <!-- Kawaii Anime Background colors (Dreamy Pastels) -->
+    <color name="background_light">#FFF5FA</color>
+    <color name="background_gradient_start">#FFF0F5</color>
+    <color name="background_gradient_end">#F0E6FF</color>
     <color name="card_background">#FFFFFF</color>
-    <color name="board_background">#FFE4E1</color>
+    <color name="board_background">#FFE4F0</color>
     
-    <!-- Text colors (Soft tones) -->
-    <color name="text_primary">#8B4789</color>
-    <color name="text_secondary">#C77FB8</color>
-    <color name="text_hint">#E6D5E6</color>
+    <!-- Text colors (Cute Purple tones) -->
+    <color name="text_primary">#9B5AA0</color>
+    <color name="text_secondary">#D895E0</color>
+    <color name="text_hint">#F0D5F5</color>
     
-    <!-- Game colors (Pastel tones) -->
-    <color name="gomoku_board">#FFDAB9</color>
-    <color name="go_board">#F0E68C</color>
-    <color name="xiangqi_board">#FFEFD5</color>
+    <!-- Game colors (Vibrant Pastel tones) -->
+    <color name="gomoku_board">#FFD5E5</color>
+    <color name="go_board">#FFF8DC</color>
+    <color name="xiangqi_board">#FFF0E0</color>
     
-    <!-- Button colors (Cute pastels) -->
-    <color name="button_primary">#98D8C8</color>
-    <color name="button_secondary">#B4A7D6</color>
-    <color name="button_warning">#FFCBDB</color>
-    <color name="button_accent">#DDA0DD</color>
+    <!-- Button colors (Super Cute kawaii pastels) -->
+    <color name="button_primary">#A0E7D8</color>
+    <color name="button_secondary">#C8B5E8</color>
+    <color name="button_warning">#FFB8D5</color>
+    <color name="button_accent">#E8A0FF</color>
+    <color name="button_ai">#D0A0FF</color>
+    
+    <!-- Kawaii Decorative colors -->
+    <color name="sparkle_pink">#FFAACC</color>
+    <color name="sparkle_purple">#CCAAFF</color>
+    <color name="sparkle_blue">#AAD8FF</color>
+    <color name="heart_pink">#FF88BB</color>
+    <color name="star_yellow">#FFEE88</color>
 </resources>
