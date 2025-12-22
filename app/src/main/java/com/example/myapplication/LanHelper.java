@@ -22,8 +22,10 @@ public class LanHelper {
     private static final String SERVICE_TYPE = "_gomoku._tcp.";
     private static final int DEFAULT_PORT = 8888;
     private static final int CONNECTION_TIMEOUT = 30000; // 30 seconds
+    private static final int READ_TIMEOUT = 60000; // 60 seconds for reads
     private static final int KEEPALIVE_INTERVAL = 15000; // 15 seconds
     private static final int MAX_RETRY_ATTEMPTS = 3;
+    private static final int SOCKET_BUFFER_SIZE = 8192; // 8KB buffer
     
     private final Context context;
     private final Listener listener;
@@ -46,6 +48,7 @@ public class LanHelper {
     private volatile boolean shouldReconnect = false;
     private String lastServiceName;
     private long lastDiscoveryTime = 0;
+    private String connectionStatus = "未连接";
 
     public LanHelper(Context ctx, Listener l) {
         this.context = ctx.getApplicationContext();
@@ -61,6 +64,7 @@ public class LanHelper {
             return;
         }
         lastDiscoveryTime = now;
+        connectionStatus = "正在扫描局域网设备...";
         
         stopDiscovery();
         
@@ -194,6 +198,7 @@ public class LanHelper {
     public void connectTo(final String serviceName) {
         lastServiceName = serviceName;
         shouldReconnect = true;
+        connectionStatus = "正在连接...";
         connectWithRetry(serviceName, 0);
     }
     
@@ -203,28 +208,43 @@ public class LanHelper {
             public void run() {
                 try {
                     stopDiscovery();
+                    connectionStatus = "连接尝试 " + (attempt + 1) + "/" + MAX_RETRY_ATTEMPTS;
                     
                     InetAddress host = discoveredServices.get(serviceName);
                     if (host == null) {
                         throw new Exception("服务未找到: " + serviceName);
                     }
                     
+                    // Check network connectivity
+                    if (!host.isReachable(5000)) {
+                        throw new Exception("网络不可达，请检查WiFi连接");
+                    }
+                    
                     Socket socket = new Socket();
-                    socket.connect(new InetSocketAddress(host, DEFAULT_PORT), CONNECTION_TIMEOUT);
+                    socket.setReuseAddress(true);
                     socket.setKeepAlive(true);
-                    socket.setSoTimeout(CONNECTION_TIMEOUT);
+                    socket.setSendBufferSize(SOCKET_BUFFER_SIZE);
+                    socket.setReceiveBufferSize(SOCKET_BUFFER_SIZE);
+                    socket.setTcpNoDelay(true); // Disable Nagle's algorithm for low latency
+                    
+                    socket.connect(new InetSocketAddress(host, DEFAULT_PORT), CONNECTION_TIMEOUT);
+                    socket.setSoTimeout(READ_TIMEOUT);
                     
                     handleConnected(socket, serviceName);
                     
                 } catch (Exception e) {
                     if (shouldReconnect && attempt < MAX_RETRY_ATTEMPTS) {
+                        // Progressive backoff: 2s, 4s, 8s
+                        final long delay = 2000 * (1L << attempt);
+                        connectionStatus = "重试中... (" + (delay/1000) + "秒后)";
                         mainHandler.postDelayed(new Runnable() {
                             @Override
                             public void run() {
                                 connectWithRetry(serviceName, attempt + 1);
                             }
-                        }, 2000); // Wait 2 seconds before retry
+                        }, delay);
                     } else {
+                        connectionStatus = "连接失败";
                         postError(e);
                     }
                 }
@@ -235,9 +255,10 @@ public class LanHelper {
     private void handleConnected(Socket socket, final String hostName) throws IOException {
         this.clientSocket = socket;
         this.isConnected = true;
+        this.connectionStatus = "已连接";
         
-        // Initialize writer for efficient sending
-        writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
+        // Initialize writer with buffering for efficient sending
+        writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()), SOCKET_BUFFER_SIZE), true);
         
         mainHandler.post(new Runnable() {
             @Override
@@ -369,8 +390,13 @@ public class LanHelper {
     public boolean isConnected() {
         return isConnected && clientSocket != null && clientSocket.isConnected() && !clientSocket.isClosed();
     }
+    
+    public String getConnectionStatus() {
+        return connectionStatus;
+    }
 
     private void postDisconnect(final String reason) {
+        connectionStatus = "已断开: " + reason;
         mainHandler.post(new Runnable() {
             @Override
             public void run() {

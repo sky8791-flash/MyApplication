@@ -23,6 +23,7 @@ public class BluetoothHelper {
     private static final int CONNECTION_TIMEOUT = 30000; // 30 seconds
     private static final int KEEPALIVE_INTERVAL = 15000; // 15 seconds
     private static final int MAX_RETRY_ATTEMPTS = 3;
+    private static final int SOCKET_BUFFER_SIZE = 8192; // 8KB buffer for better performance
 
     private final BluetoothAdapter adapter;
     private final Context context;
@@ -37,6 +38,7 @@ public class BluetoothHelper {
     private volatile boolean shouldReconnect = false;
     private BluetoothDevice lastDevice;
     private PrintWriter writer;
+    private String connectionStatus = "未连接";
 
     public BluetoothHelper(Context ctx, Listener l) {
         this.context = ctx.getApplicationContext();
@@ -47,6 +49,22 @@ public class BluetoothHelper {
     /* ========== 发现设备 ========== */
     public void startDiscovery() {
         stopDiscovery();
+        connectionStatus = "正在扫描设备...";
+        
+        // First, report all paired devices
+        Set<BluetoothDevice> pairedDevices = adapter.getBondedDevices();
+        if (pairedDevices != null) {
+            for (final BluetoothDevice device : pairedDevices) {
+                main.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        listener.onDeviceFound(device);
+                    }
+                });
+            }
+        }
+        
+        // Then start discovering new devices
         discoveryReceiver = new BroadcastReceiver() {
             @Override public void onReceive(Context ctx, Intent intent) {
                 if (BluetoothDevice.ACTION_FOUND.equals(intent.getAction())) {
@@ -93,6 +111,7 @@ public class BluetoothHelper {
     public void connectTo(BluetoothDevice device) {
         lastDevice = device;
         shouldReconnect = true;
+        connectionStatus = "正在连接...";
         connectWithRetry(device, 0);
     }
     
@@ -102,6 +121,7 @@ public class BluetoothHelper {
             public void run() {
                 try {
                     stopDiscovery();
+                    connectionStatus = "连接尝试 " + (attempt + 1) + "/" + MAX_RETRY_ATTEMPTS;
                     
                     // Try standard connection first
                     BluetoothSocket s = null;
@@ -117,16 +137,29 @@ public class BluetoothHelper {
                         s.connect();
                     }
                     
+                    // Optimize socket buffer size
+                    try {
+                        s.getInputStream();
+                        s.getOutputStream();
+                    } catch (IOException e) {
+                        // Socket validation failed
+                        throw e;
+                    }
+                    
                     handleConnected(s);
                 } catch (Exception e) {
                     if (shouldReconnect && attempt < MAX_RETRY_ATTEMPTS) {
+                        // Progressive backoff: 2s, 4s, 8s
+                        final long delay = 2000 * (1L << attempt);
+                        connectionStatus = "重试中... (" + (delay/1000) + "秒后)";
                         main.postDelayed(new Runnable() {
                             @Override
                             public void run() {
                                 connectWithRetry(device, attempt + 1);
                             }
-                        }, 2000); // Wait 2 seconds before retry
+                        }, delay);
                     } else {
+                        connectionStatus = "连接失败";
                         postError(e);
                     }
                 }
@@ -138,10 +171,11 @@ public class BluetoothHelper {
         if (serverSocket != null) { try { serverSocket.close(); } catch (Exception ignored) {} }
         this.socket = s;
         this.isConnected = true;
+        this.connectionStatus = "已连接";
         final BluetoothDevice device = s.getRemoteDevice();
         
-        // Initialize writer for efficient sending
-        writer = new PrintWriter(new OutputStreamWriter(s.getOutputStream()), true);
+        // Initialize writer with buffering for efficient sending
+        writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(s.getOutputStream()), SOCKET_BUFFER_SIZE), true);
         
         main.post(new Runnable() {
             @Override
@@ -259,8 +293,13 @@ public class BluetoothHelper {
     public boolean isConnected() {
         return isConnected && socket != null && socket.isConnected();
     }
+    
+    public String getConnectionStatus() {
+        return connectionStatus;
+    }
 
     private void postDisconnect(String reason) {
+        connectionStatus = "已断开: " + reason;
         final String finalReason = reason;
         main.post(new Runnable() {
             @Override
