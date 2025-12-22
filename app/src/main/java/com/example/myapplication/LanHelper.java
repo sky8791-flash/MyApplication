@@ -21,6 +21,9 @@ public class LanHelper {
 
     private static final String SERVICE_TYPE = "_gomoku._tcp.";
     private static final int DEFAULT_PORT = 8888;
+    private static final int CONNECTION_TIMEOUT = 30000; // 30 seconds
+    private static final int KEEPALIVE_INTERVAL = 15000; // 15 seconds
+    private static final int MAX_RETRY_ATTEMPTS = 3;
     
     private final Context context;
     private final Listener listener;
@@ -35,8 +38,14 @@ public class LanHelper {
     private Socket clientSocket;
     private Thread serverThread;
     private Thread readThread;
+    private Thread keepAliveThread;
+    private PrintWriter writer;
     
     private Map<String, InetAddress> discoveredServices = new HashMap<>();
+    private volatile boolean isConnected = false;
+    private volatile boolean shouldReconnect = false;
+    private String lastServiceName;
+    private long lastDiscoveryTime = 0;
 
     public LanHelper(Context ctx, Listener l) {
         this.context = ctx.getApplicationContext();
@@ -46,6 +55,13 @@ public class LanHelper {
 
     /* ========== Service Discovery ========== */
     public void startDiscovery() {
+        // Prevent rapid discovery restarts
+        long now = System.currentTimeMillis();
+        if (now - lastDiscoveryTime < 2000) {
+            return;
+        }
+        lastDiscoveryTime = now;
+        
         stopDiscovery();
         
         discoveryListener = new NsdManager.DiscoveryListener() {
@@ -176,6 +192,12 @@ public class LanHelper {
 
     /* ========== Client Connect (Join Room) ========== */
     public void connectTo(final String serviceName) {
+        lastServiceName = serviceName;
+        shouldReconnect = true;
+        connectWithRetry(serviceName, 0);
+    }
+    
+    private void connectWithRetry(final String serviceName, final int attempt) {
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -184,22 +206,38 @@ public class LanHelper {
                     
                     InetAddress host = discoveredServices.get(serviceName);
                     if (host == null) {
-                        postError(new Exception("Service not found: " + serviceName));
-                        return;
+                        throw new Exception("服务未找到: " + serviceName);
                     }
                     
-                    Socket socket = new Socket(host, DEFAULT_PORT);
+                    Socket socket = new Socket();
+                    socket.connect(new InetSocketAddress(host, DEFAULT_PORT), CONNECTION_TIMEOUT);
+                    socket.setKeepAlive(true);
+                    socket.setSoTimeout(CONNECTION_TIMEOUT);
+                    
                     handleConnected(socket, serviceName);
                     
                 } catch (Exception e) {
-                    postError(e);
+                    if (shouldReconnect && attempt < MAX_RETRY_ATTEMPTS) {
+                        mainHandler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                connectWithRetry(serviceName, attempt + 1);
+                            }
+                        }, 2000); // Wait 2 seconds before retry
+                    } else {
+                        postError(e);
+                    }
                 }
             }
-        }, "lan-connect").start();
+        }, "lan-connect-" + attempt).start();
     }
 
     private void handleConnected(Socket socket, final String hostName) throws IOException {
         this.clientSocket = socket;
+        this.isConnected = true;
+        
+        // Initialize writer for efficient sending
+        writer = new PrintWriter(new OutputStreamWriter(socket.getOutputStream()), true);
         
         mainHandler.post(new Runnable() {
             @Override
@@ -209,6 +247,7 @@ public class LanHelper {
         });
         
         startReadLoop(socket);
+        startKeepAlive();
     }
 
     private void startReadLoop(Socket socket) {
@@ -217,7 +256,16 @@ public class LanHelper {
             public void run() {
                 try (BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
                     String line;
-                    while ((line = br.readLine()) != null) {
+                    while (isConnected && (line = br.readLine()) != null) {
+                        // Skip keepalive pings
+                        if ("PING".equals(line)) {
+                            sendLine("PONG");
+                            continue;
+                        }
+                        if ("PONG".equals(line)) {
+                            continue;
+                        }
+                        
                         final String finalLine = line;
                         mainHandler.post(new Runnable() {
                             @Override
@@ -226,30 +274,65 @@ public class LanHelper {
                             }
                         });
                     }
-                    postDisconnect("Connection closed");
+                    isConnected = false;
+                    postDisconnect("连接断开");
                 } catch (Exception e) {
+                    isConnected = false;
+                    if (shouldReconnect && lastServiceName != null && !Thread.currentThread().isInterrupted()) {
+                        mainHandler.postDelayed(new Runnable() {
+                            @Override
+                            public void run() {
+                                connectWithRetry(lastServiceName, 0);
+                            }
+                        }, 3000);
+                    }
                     if (!Thread.currentThread().isInterrupted()) {
-                        postDisconnect("Connection lost");
+                        postDisconnect("连接丢失");
                     }
                 }
             }
         }, "lan-read");
         readThread.start();
     }
+    
+    private void startKeepAlive() {
+        keepAliveThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (isConnected && !Thread.currentThread().isInterrupted()) {
+                    try {
+                        Thread.sleep(KEEPALIVE_INTERVAL);
+                        if (isConnected) {
+                            sendLine("PING");
+                        }
+                    } catch (InterruptedException e) {
+                        break;
+                    } catch (Exception e) {
+                        // Ignore keepalive errors
+                    }
+                }
+            }
+        }, "lan-keepalive");
+        keepAliveThread.start();
+    }
 
     public void sendLine(String text) {
         try {
-            if (clientSocket != null && !clientSocket.isClosed()) {
-                OutputStream os = clientSocket.getOutputStream();
-                PrintWriter pw = new PrintWriter(new OutputStreamWriter(os), true);
-                pw.println(text);
+            if (writer != null && isConnected) {
+                writer.println(text);
+                if (writer.checkError()) {
+                    throw new IOException("写入错误");
+                }
             }
         } catch (Exception e) {
+            isConnected = false;
             postError(e);
         }
     }
 
     public void close() {
+        shouldReconnect = false;
+        isConnected = false;
         stopDiscovery();
         
         // Unregister service
@@ -259,13 +342,32 @@ public class LanHelper {
             } catch (Exception ignored) {}
         }
         
-        // Close sockets
+        // Interrupt threads
+        if (keepAliveThread != null) {
+            keepAliveThread.interrupt();
+            keepAliveThread = null;
+        }
+        if (serverThread != null) {
+            serverThread.interrupt();
+            serverThread = null;
+        }
+        if (readThread != null) {
+            readThread.interrupt();
+            readThread = null;
+        }
+        
+        // Close resources
+        try { if (writer != null) writer.close(); } catch (Exception ignored) {}
         try { if (clientSocket != null) clientSocket.close(); } catch (Exception ignored) {}
         try { if (serverSocket != null) serverSocket.close(); } catch (Exception ignored) {}
         
-        // Interrupt threads
-        if (serverThread != null) serverThread.interrupt();
-        if (readThread != null) readThread.interrupt();
+        writer = null;
+        clientSocket = null;
+        serverSocket = null;
+    }
+    
+    public boolean isConnected() {
+        return isConnected && clientSocket != null && clientSocket.isConnected() && !clientSocket.isClosed();
     }
 
     private void postDisconnect(final String reason) {
