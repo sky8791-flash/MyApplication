@@ -256,5 +256,20 @@
             </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
+    
+    <!-- History Button -->
+    <Button
+        android:id="@+id/btnHistory"
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:text="📜 对战历史"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:backgroundTint="@color/sparkle_purple"
+        android:textColor="@android:color/white"
+        app:cornerRadius="24dp"
+        app:strokeColor="@color/primary"
+        app:strokeWidth="3dp"
+        android:elevation="12dp"/>
 
 </LinearLayout>

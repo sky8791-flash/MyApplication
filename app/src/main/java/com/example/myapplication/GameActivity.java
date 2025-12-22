@@ -38,10 +38,18 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
     private SimpleAI ai;
     private boolean playingAgainstAI = false;
     private final Handler aiHandler = new Handler(Looper.getMainLooper());
+    private String aiDifficultyStr = "";
     
     // Game state
     private boolean gameStarted = false;
     private boolean gameEnded = false;
+    
+    // Game tracking
+    private GameHistoryManager historyManager;
+    private long gameStartTime = 0;
+    private int playerMoveCount = 0;
+    private int opponentMoveCount = 0;
+    private String opponentName = "未知";
 
     private final String[] perms = new String[]{
             Manifest.permission.BLUETOOTH_SCAN,
@@ -64,6 +72,7 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
         
         bt = new BluetoothHelper(this, this);
         lan = new LanHelper(this, this);
+        historyManager = new GameHistoryManager(this);
 
         // Get game type from intent
         gameTypeStr = getIntent().getStringExtra("GAME_TYPE");
@@ -212,6 +221,16 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
         gameStarted = true;
         gameEnded = false;
         
+        // Track game start
+        gameStartTime = System.currentTimeMillis();
+        playerMoveCount = 0;
+        opponentMoveCount = 0;
+        switch (difficulty) {
+            case EASY: aiDifficultyStr = "AI-简单"; opponentName = "AI-简单"; break;
+            case MEDIUM: aiDifficultyStr = "AI-中等"; opponentName = "AI-中等"; break;
+            case HARD: aiDifficultyStr = "AI-困难"; opponentName = "AI-困难"; break;
+        }
+        
         // Reset game
         switch (currentGameType) {
             case GOMOKU:
@@ -255,6 +274,7 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                     int[] move = ai.findBestXiangqiMove(xiangqiEngine, aiColor);
                     if (move != null && move.length == 4) {
                         if (xiangqiEngine.place(move[0], move[1], move[2], move[3], aiColor)) {
+                            opponentMoveCount++; // Track AI move
                             boardView.invalidate();
                             if (xiangqiEngine.checkWin(move[2], move[3])) {
                                 gameEnded = true;
@@ -286,6 +306,7 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                     if (currentGameType == BoardView.GameType.GOMOKU) {
                         success = gomokuEngine.place(move[0], move[1], aiColor);
                         if (success) {
+                            opponentMoveCount++; // Track AI move
                             if (gomokuEngine.checkWin(move[0], move[1])) {
                                 gameEnded = true;
                                 showGameEndDialog("AI获胜！");
@@ -294,6 +315,7 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                     } else if (currentGameType == BoardView.GameType.GO) {
                         success = goEngine.place(move[0], move[1], aiColor);
                         if (success) {
+                            opponentMoveCount++; // Track AI move
                             if (goEngine.checkWin(move[0], move[1])) {
                                 gameEnded = true;
                                 showGameEndDialog("AI获胜！");
@@ -354,6 +376,7 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
         }
         
         if (!success) return;
+        playerMoveCount++; // Track player move
         boardView.invalidate();
         
         if (!playingAgainstAI) {
@@ -390,6 +413,7 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
         if (turn != myColor) { Toast.makeText(this, "等待对手", Toast.LENGTH_SHORT).show(); return; }
         if (!xiangqiEngine.place(fromR, fromC, toR, toC, myColor)) return;
         
+        playerMoveCount++; // Track player move
         boardView.invalidate();
         
         if (!playingAgainstAI) {
@@ -408,6 +432,7 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
     }
 
     private void onRemoteMove(int r, int c, int color, int fromR, int fromC) {
+        opponentMoveCount++; // Track opponent move
         if (currentGameType == BoardView.GameType.XIANGQI) {
             xiangqiEngine.place(fromR, fromC, r, c, color);
             if (xiangqiEngine.checkWin(r, c)) {
@@ -463,6 +488,9 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
     }
     
     private void showGameEndDialog(String message) {
+        // Save game record
+        saveGameRecord(message);
+        
         new AlertDialog.Builder(this)
                 .setTitle("游戏结束")
                 .setMessage(message)
@@ -480,6 +508,38 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                 })
                 .setCancelable(false)
                 .show();
+    }
+    
+    private void saveGameRecord(String resultMessage) {
+        if (gameStartTime == 0) return; // Game never properly started
+        
+        long duration = System.currentTimeMillis() - gameStartTime;
+        String gameTypeName = "";
+        switch (currentGameType) {
+            case GOMOKU: gameTypeName = "五子棋"; break;
+            case GO: gameTypeName = "围棋"; break;
+            case XIANGQI: gameTypeName = "象棋"; break;
+        }
+        
+        String gameMode = playingAgainstAI ? "AI" : (isUsingLan ? "局域网" : "蓝牙");
+        String result = "平";
+        if (resultMessage.contains("赢了") || resultMessage.contains("获胜")) {
+            result = "胜";
+        } else if (resultMessage.contains("输了")) {
+            result = "负";
+        }
+        
+        GameRecord record = new GameRecord(
+            gameTypeName,
+            gameMode,
+            opponentName,
+            result,
+            playerMoveCount,
+            opponentMoveCount,
+            duration
+        );
+        
+        historyManager.addRecord(record);
     }
     
     private void resetGame() {
@@ -541,6 +601,10 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
     }
 
     @Override public void onConnected(BluetoothDevice device) {
+        opponentName = device.getName(); // Track opponent name
+        gameStartTime = System.currentTimeMillis(); // Track game start for multiplayer
+        playerMoveCount = 0;
+        opponentMoveCount = 0;
         Toast.makeText(this, "已连接 " + device.getName(), Toast.LENGTH_SHORT).show();
         sendChallenge();
     }
@@ -708,6 +772,11 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
     }
     
     @Override public void onConnected(String hostName) {
+        isUsingLan = true;
+        opponentName = hostName; // Track LAN opponent name
+        gameStartTime = System.currentTimeMillis(); // Track game start for LAN
+        playerMoveCount = 0;
+        opponentMoveCount = 0;
         Toast.makeText(this, "已连接 " + hostName, Toast.LENGTH_SHORT).show();
         if (isUsingLan) {
             sendChallengeLan();
