@@ -15,11 +15,14 @@ import com.google.android.material.card.MaterialCardView;
 import org.json.JSONObject;
 import java.util.*;
 
-public class GameActivity extends AppCompatActivity implements BluetoothHelper.Listener {
+public class GameActivity extends AppCompatActivity implements BluetoothHelper.Listener, LanHelper.Listener {
 
     private BluetoothHelper bt;
+    private LanHelper lan;
     private ArrayAdapter<String> deviceAdapter;
     private Map<String, BluetoothDevice> deviceMap = new HashMap<>();
+    private Map<String, String> lanServiceMap = new HashMap<>();
+    private boolean isUsingLan = false;
     private GomokuEngine gomokuEngine;
     private GoEngine goEngine;
     private XiangqiEngine xiangqiEngine;
@@ -60,6 +63,7 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
         setContentView(R.layout.activity_game);
         
         bt = new BluetoothHelper(this, this);
+        lan = new LanHelper(this, this);
 
         // Get game type from intent
         gameTypeStr = getIntent().getStringExtra("GAME_TYPE");
@@ -111,9 +115,18 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
             @Override
             public void onItemClick(AdapterView<?> p, View v, int pos, long id) {
                 String key = deviceAdapter.getItem(pos);
+                
+                // Try Bluetooth first
                 BluetoothDevice d = deviceMap.get(key);
                 if (d != null) {
                     bt.connectTo(d);
+                    return;
+                }
+                
+                // Try LAN
+                String serviceName = lanServiceMap.get(key);
+                if (serviceName != null) {
+                    lan.connectTo(serviceName);
                 }
             }
         });
@@ -151,6 +164,21 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                 } else {
                     sendUndoRequest();
                 }
+            }
+        });
+        
+        // LAN buttons
+        findViewById(R.id.btnLanDiscover).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startLanDiscovery();
+                cardDevices.setVisibility(View.VISIBLE);
+            }
+        });
+        findViewById(R.id.btnLanHost).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startLanServer();
             }
         });
     }
@@ -417,7 +445,7 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                 o.put("fromR", fromR);
                 o.put("fromC", fromC);
             }
-            bt.sendLine(o.toString());
+            sendMessage(o.toString());
         } catch (Exception e) { 
             e.printStackTrace();
             Toast.makeText(this, "发送移动失败", Toast.LENGTH_SHORT).show();
@@ -425,6 +453,14 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
     }
 
     private int other(int c) { return c == 1 ? 2 : 1; }
+    
+    private void sendMessage(String message) {
+        if (isUsingLan) {
+            lan.sendLine(message);
+        } else {
+            bt.sendLine(message);
+        }
+    }
     
     private void showGameEndDialog(String message) {
         new AlertDialog.Builder(this)
@@ -478,7 +514,7 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
             o.put("type", "challenge"); 
             o.put("from", "Player");
             o.put("gameType", gameTypeStr);
-            bt.sendLine(o.toString());
+            sendMessage(o.toString());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -488,7 +524,7 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
         try {
             JSONObject o = new JSONObject(); 
             o.put("type", "undo_request");
-            bt.sendLine(o.toString());
+            sendMessage(o.toString());
         } catch (Exception e) {
             e.printStackTrace();
             Toast.makeText(this, "发送悔棋请求失败", Toast.LENGTH_SHORT).show();
@@ -531,7 +567,7 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                                             try {
                                                 JSONObject ok = new JSONObject(); 
                                                 ok.put("type", "accept");
-                                                bt.sendLine(ok.toString());
+                                                sendMessage(ok.toString());
                                                 myColor = 2;
                                                 turn = 1;
                                                 gameStarted = true;
@@ -548,7 +584,7 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                                             try { 
                                                 JSONObject r = new JSONObject(); 
                                                 r.put("type", "reject"); 
-                                                bt.sendLine(r.toString()); 
+                                                sendMessage(r.toString()); 
                                             } catch (Exception e) {
                                                 e.printStackTrace();
                                             }
@@ -605,7 +641,7 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
                                             try { 
                                                 JSONObject ok = new JSONObject(); 
                                                 ok.put("type","undo_ok"); 
-                                                bt.sendLine(ok.toString()); 
+                                                sendMessage(ok.toString()); 
                                             } catch (Exception e) {
                                                 e.printStackTrace();
                                             }
@@ -642,9 +678,55 @@ public class GameActivity extends AppCompatActivity implements BluetoothHelper.L
     @Override public void onError(Throwable t) {
         Toast.makeText(this, "错误: " + t.getMessage(), Toast.LENGTH_SHORT).show();
     }
+    
+    /* ========== LAN Helper Methods ========== */
+    
+    private void startLanDiscovery() {
+        deviceAdapter.clear();
+        deviceMap.clear();
+        lanServiceMap.clear();
+        isUsingLan = true;
+        lan.startDiscovery();
+        Toast.makeText(this, "正在搜索局域网设备...", Toast.LENGTH_SHORT).show();
+    }
+    
+    private void startLanServer() {
+        lan.startServer();
+        isUsingLan = true;
+        Toast.makeText(this, "等待局域网连接...", Toast.LENGTH_SHORT).show();
+    }
+    
+    /* ========== LanHelper.Listener Implementation ========== */
+    
+    @Override public void onServiceFound(String serviceName, String hostAddress) {
+        String key = serviceName + " (" + hostAddress + ")";
+        if (!lanServiceMap.containsKey(key)) {
+            lanServiceMap.put(key, serviceName);
+            deviceAdapter.add(key);
+            deviceAdapter.notifyDataSetChanged();
+        }
+    }
+    
+    @Override public void onConnected(String hostName) {
+        Toast.makeText(this, "已连接 " + hostName, Toast.LENGTH_SHORT).show();
+        if (isUsingLan) {
+            sendChallengeLan();
+        }
+    }
+    
+    private void sendChallengeLan() {
+        try {
+            JSONObject o = new JSONObject();
+            o.put("type", "challenge");
+            lan.sendLine(o.toString());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     @Override protected void onDestroy() {
         super.onDestroy();
         bt.close();
+        lan.close();
     }
 }

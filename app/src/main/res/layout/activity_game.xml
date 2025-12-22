@@ -53,7 +53,7 @@
         android:paddingStart="8dp"
         android:paddingEnd="8dp"
         android:paddingTop="4dp"
-        android:paddingBottom="4dp"
+        android:paddingBottom="2dp"
         android:gravity="center_vertical">
         
         <Button
@@ -90,6 +90,42 @@
             android:layout_weight="1"
             android:layout_marginStart="4dp"
             android:textSize="11sp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"/>
+    </LinearLayout>
+    
+    <!-- LAN Control Buttons -->
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="2dp"
+        android:paddingBottom="4dp"
+        android:gravity="center_vertical">
+        
+        <Button
+            android:id="@+id/btnLanDiscover"
+            style="@style/PrimaryButton"
+            android:text="🌐 局域网扫描"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="4dp"
+            android:textSize="10sp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"/>
+        
+        <Button
+            android:id="@+id/btnLanHost"
+            style="@style/SecondaryButton"
+            android:text="📡 创建房间"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="4dp"
+            android:textSize="10sp"
             android:paddingTop="8dp"
             android:paddingBottom="8dp"/>
     </LinearLayout>
