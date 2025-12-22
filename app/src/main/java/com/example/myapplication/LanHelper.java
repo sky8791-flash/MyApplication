@@ -235,8 +235,8 @@ public class LanHelper {
                     
                 } catch (Exception e) {
                     if (shouldReconnect && attempt < MAX_RETRY_ATTEMPTS) {
-                        // Progressive backoff: 2s, 4s, 8s
-                        final long delay = 2000 * (1L << attempt);
+                        // Progressive backoff: 2s, 4s, 8s (capped at 8s)
+                        final long delay = Math.min(2000 * (1L << attempt), 8000);
                         connectionStatus = "重试中... (" + (delay/1000) + "秒后)";
                         mainHandler.postDelayed(new Runnable() {
                             @Override

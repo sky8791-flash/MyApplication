@@ -138,20 +138,21 @@ public class BluetoothHelper {
                         s.connect();
                     }
                     
-                    // Validate socket streams
+                    // Validate socket streams are accessible (quick connectivity check)
+                    // This ensures the socket has valid I/O streams before proceeding
                     try {
                         s.getInputStream();
                         s.getOutputStream();
                     } catch (IOException e) {
-                        // Socket validation failed
+                        // Socket validation failed - streams not accessible
                         throw e;
                     }
                     
                     handleConnected(s);
                 } catch (Exception e) {
                     if (shouldReconnect && attempt < MAX_RETRY_ATTEMPTS) {
-                        // Progressive backoff: 2s, 4s, 8s
-                        final long delay = 2000 * (1L << attempt);
+                        // Progressive backoff: 2s, 4s, 8s (capped at 8s)
+                        final long delay = Math.min(2000 * (1L << attempt), 8000);
                         connectionStatus = "重试中... (" + (delay/1000) + "秒后)";
                         main.postDelayed(new Runnable() {
                             @Override
