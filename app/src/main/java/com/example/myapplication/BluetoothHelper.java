@@ -24,6 +24,7 @@ public class BluetoothHelper {
     private static final int KEEPALIVE_INTERVAL = 15000; // 15 seconds
     private static final int MAX_RETRY_ATTEMPTS = 3;
     private static final int SOCKET_BUFFER_SIZE = 8192; // 8KB buffer for better performance
+    private static final int WRITER_BUFFER_SIZE = 2048; // 2KB buffer for text output
 
     private final BluetoothAdapter adapter;
     private final Context context;
@@ -137,7 +138,7 @@ public class BluetoothHelper {
                         s.connect();
                     }
                     
-                    // Optimize socket buffer size
+                    // Validate socket streams
                     try {
                         s.getInputStream();
                         s.getOutputStream();
@@ -175,7 +176,7 @@ public class BluetoothHelper {
         final BluetoothDevice device = s.getRemoteDevice();
         
         // Initialize writer with buffering for efficient sending
-        writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(s.getOutputStream()), SOCKET_BUFFER_SIZE), true);
+        writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(s.getOutputStream()), WRITER_BUFFER_SIZE), true);
         
         main.post(new Runnable() {
             @Override

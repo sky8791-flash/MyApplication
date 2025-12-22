@@ -26,6 +26,7 @@ public class LanHelper {
     private static final int KEEPALIVE_INTERVAL = 15000; // 15 seconds
     private static final int MAX_RETRY_ATTEMPTS = 3;
     private static final int SOCKET_BUFFER_SIZE = 8192; // 8KB buffer
+    private static final int WRITER_BUFFER_SIZE = 2048; // 2KB buffer for text output
     
     private final Context context;
     private final Listener listener;
@@ -258,7 +259,7 @@ public class LanHelper {
         this.connectionStatus = "已连接";
         
         // Initialize writer with buffering for efficient sending
-        writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()), SOCKET_BUFFER_SIZE), true);
+        writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()), WRITER_BUFFER_SIZE), true);
         
         mainHandler.post(new Runnable() {
             @Override
