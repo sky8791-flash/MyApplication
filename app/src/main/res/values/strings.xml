@@ -1,6 +1,6 @@
 <resources>
     <!-- 你自己的主题，名称与 Manifest 保持一致 -->
-    <string name="app_name">棋盘游戏</string>
+    <string name="app_name">棋类游戏</string>
     
     <string-array name="game_types">
         <item>🎯 五子棋</item>
